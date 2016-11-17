@@ -64,11 +64,6 @@ typedef struct {
 
 
 enum {
-    SHDICT_USERDATA_INDEX = 1,
-};
-
-
-enum {
     SHDICT_TNIL = 0,        /* same as LUA_TNIL */
     SHDICT_TBOOLEAN = 1,    /* same as LUA_TBOOLEAN */
     SHDICT_TNUMBER = 3,     /* same as LUA_TNUMBER */
