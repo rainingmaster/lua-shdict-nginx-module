@@ -54,6 +54,14 @@ ffi.cdef[[
         size_t str_value_len, double num_value, int *value_len,
         int flags, char **errmsg);
         
+    int ngx_http_lua_ffi_shdict_llen(void *zone, const unsigned char *key,
+        size_t key_len, int *value_num, char **errmsg);
+        
+    int ngx_http_lua_ffi_shdict_flush(void *zone, char **errmsg);
+        
+    int ngx_http_lua_ffi_shdict_flush_expired(void *zone, int attempts,
+        int *freed, char **errmsg);
+        
     int ngx_http_lua_ffi_shdict_get_keys(void *zone, int attempts,
         ngx_str_t **keys_buf, size_t *key_num, char **errmsg);
 ]]
@@ -218,6 +226,42 @@ end
 
 local function shdict_rpop(zone, key)
     return shdict_pop(zone, 0x0002, key)
+end
+
+
+local function shdict_llen(zone, key)
+    zone = zone[ZONE_INDEX]
+    if not zone or type(zone) ~= "cdata" then
+        return error("bad \"zone\" argument")
+    end
+
+    if key == nil then
+        return nil, "nil key"
+    end
+
+    if type(key) ~= "string" then
+        key = tostring(key)
+    end
+
+    local key_len = #key
+    if key_len == 0 then
+        return nil, "empty key"
+    end
+    if key_len > 65535 then
+        return nil, "key too long"
+    end
+
+    local value_num = ffi_new("int[1]")
+
+    local rc = C.ngx_http_lua_ffi_shdict_llen(zone, key, key_len, value_num, errmsg)
+
+    if rc ~= NGX_OK then
+        return error("failed to pop the key")
+    end
+
+    local val = tonumber(value_num[0])
+
+    return val
 end
 
 
@@ -467,6 +511,43 @@ local function shdict_get_stale(zone, key)
 end
 
 
+local function shdict_flush_all(zone)
+    zone = zone[ZONE_INDEX]
+    if not zone or type(zone) ~= "cdata" then
+        return error("bad \"zone\" argument")
+    end
+
+    local rc = C.ngx_http_lua_ffi_shdict_flush(zone, errmsg)
+    if rc ~= 0 then
+        return nil, "failed to flush"
+    end
+
+    return true
+end
+
+
+local function shdict_flush_expired(zone, attempts)
+    zone = zone[ZONE_INDEX]
+    if not zone or type(zone) ~= "cdata" then
+        return error("bad \"zone\" argument")
+    end
+    
+    attempts = tonumber(attempts)
+    if not attempts then
+        attempts = 1024
+    end
+
+    local freed = ffi_new("int[1]")
+
+    local rc = C.ngx_http_lua_ffi_shdict_flush_expired(zone, attempts, freed, errmsg)
+    if rc ~= 0 then
+        return error("failed get flush expire")
+    end
+
+    return tonumber(freed[0])
+end
+
+
 local function shdict_get_keys(zone, attempts)
     zone = zone[ZONE_INDEX]
     if not zone or type(zone) ~= "cdata" then
@@ -498,17 +579,22 @@ local function shdict_get_keys(zone, attempts)
 end
 
 
-func.get_keys  = shdict_get_keys
-func.get       = shdict_get
-func.get_stale = shdict_get_stale
-func.set       = shdict_set
-func.safe_set  = shdict_safe_set
-func.add       = shdict_add
-func.safe_add  = shdict_safe_add
-func.lpush     = shdict_lpush
-func.rpush     = shdict_rpush
-func.lpop      = shdict_lpop
-func.rpop      = shdict_rpop
+func.get_keys           = shdict_get_keys
+func.get                = shdict_get
+func.get_stale          = shdict_get_stale
+func.set                = shdict_set
+func.safe_set           = shdict_safe_set
+func.add                = shdict_add
+func.safe_add           = shdict_safe_add
+func.replace            = shdict_replace
+func.delete             = shdict_delete
+func.lpush              = shdict_lpush
+func.rpush              = shdict_rpush
+func.lpop               = shdict_lpop
+func.rpop               = shdict_rpop
+func.llen               = shdict_llen
+func.flush_expired      = shdict_flush_expired
+func.flush_all          = shdict_flush_all
 
 
 local function get_all()

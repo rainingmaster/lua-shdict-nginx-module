@@ -109,9 +109,7 @@ These two forms are fundamentally equivalent.
 
 If the user flags is `0` (the default), then no flags value will be returned.
 
-This feature was first introduced in the `v0.3.1rc22` release.
-
-[Back to TOC](#nginx-api-for-lua)
+[Back to TOC](#nginx-shared-dict-api-for-lua)
 
 get_stale
 -------------------------
@@ -125,7 +123,7 @@ Returns a 3rd value, `stale`, indicating whether the key has expired or not.
 
 Note that the value of an expired key is not guaranteed to be available so one should never rely on the availability of expired items.
 
-[Back to TOC](#nginx-api-for-lua)
+[Back to TOC](#nginx-shared-dict-api-for-lua)
 
 set
 -------------------
@@ -167,7 +165,7 @@ These two forms are fundamentally equivalent.
 
 Please note that while internally the key-value pair is set atomically, the atomicity does not go across the method call boundary.
 
-[Back to TOC](#nginx-api-for-lua)
+[Back to TOC](#nginx-shared-dict-api-for-lua)
 
 safe_set
 ------------------------
@@ -177,7 +175,7 @@ safe_set
 
 Similar to the [set](#set) method, but never overrides the (least recently used) unexpired items in the store when running out of storage in the shared memory zone. In this case, it will immediately return `nil` and the string "no memory".
 
-[Back to TOC](#nginx-api-for-lua)
+[Back to TOC](#nginx-shared-dict-api-for-lua)
 
 add
 -------------------
@@ -189,7 +187,7 @@ Just like the [set](#set) method, but only stores the key-value pair into the di
 
 If the `key` argument already exists in the dictionary (and not expired for sure), the `success` return value will be `false` and the `err` return value will be `"exists"`.
 
-[Back to TOC](#nginx-api-for-lua)
+[Back to TOC](#nginx-shared-dict-api-for-lua)
 
 safe_add
 ------------------------
@@ -199,7 +197,7 @@ safe_add
 
 Similar to the [add](#add) method, but never overrides the (least recently used) unexpired items in the store when running out of storage in the shared memory zone. In this case, it will immediately return `nil` and the string "no memory".
 
-[Back to TOC](#nginx-api-for-lua)
+[Back to TOC](#nginx-shared-dict-api-for-lua)
 
 replace
 -----------------------
@@ -211,7 +209,7 @@ Just like the [set](#set) method, but only stores the key-value pair into the di
 
 If the `key` argument does *not* exist in the dictionary (or expired already), the `success` return value will be `false` and the `err` return value will be `"not found"`.
 
-[Back to TOC](#nginx-api-for-lua)
+[Back to TOC](#nginx-shared-dict-api-for-lua)
 
 delete
 ----------------------
@@ -223,7 +221,7 @@ Unconditionally removes the key-value pair from the shm-based dictionary [dict](
 
 It is equivalent to `dict:set(key, nil)`.
 
-[Back to TOC](#nginx-api-for-lua)
+[Back to TOC](#nginx-shared-dict-api-for-lua)
 
 incr
 --------------------
@@ -250,7 +248,7 @@ The `value` argument and `init` argument can be any valid Lua numbers, like nega
 
 This method was first introduced in the `v0.3.1rc22` release.
 
-[Back to TOC](#nginx-api-for-lua)
+[Back to TOC](#nginx-shared-dict-api-for-lua)
 
 lpush
 ---------------------
@@ -264,7 +262,7 @@ If `key` does not exist, it is created as an empty list before performing the pu
 
 It never overrides the (least recently used) unexpired items in the store when running out of storage in the shared memory zone. In this case, it will immediately return `nil` and the string "no memory".
 
-[Back to TOC](#nginx-api-for-lua)
+[Back to TOC](#nginx-shared-dict-api-for-lua)
 
 rpush
 ---------------------
@@ -274,7 +272,7 @@ rpush
 
 Similar to the [lpush](#lpush) method, but inserts the specified (numerical or string) `value` at the tail of the list named `key`.
 
-[Back to TOC](#nginx-api-for-lua)
+[Back to TOC](#nginx-shared-dict-api-for-lua)
 
 lpop
 --------------------
@@ -286,7 +284,7 @@ Removes and returns the first element of the list named `key` in the shm-based d
 
 If `key` does not exist, it will return `nil`. When the `key` already takes a value that is not a list, it will return `nil` and `"value not a list"`.
 
-[Back to TOC](#nginx-api-for-lua)
+[Back to TOC](#nginx-shared-dict-api-for-lua)
 
 rpop
 --------------------
@@ -298,7 +296,7 @@ Removes and returns the last element of the list named `key` in the shm-based di
 
 If `key` does not exist, it will return `nil`. When the `key` already takes a value that is not a list, it will return `nil` and `"value not a list"`.
 
-[Back to TOC](#nginx-api-for-lua)
+[Back to TOC](#nginx-shared-dict-api-for-lua)
 
 llen
 --------------------
@@ -310,7 +308,7 @@ Returns the number of elements in the list named `key` in the shm-based dictiona
 
 If key does not exist, it is interpreted as an empty list and 0 is returned. When the `key` already takes a value that is not a list, it will return `nil` and `"value not a list"`.
 
-[Back to TOC](#nginx-api-for-lua)
+[Back to TOC](#nginx-shared-dict-api-for-lua)
 
 flush_all
 -------------------------
@@ -324,7 +322,7 @@ This feature was first introduced in the `v0.5.0rc17` release.
 
 See also [flush_expired](#flush_expired) and [dict](#).
 
-[Back to TOC](#nginx-api-for-lua)
+[Back to TOC](#nginx-shared-dict-api-for-lua)
 
 flush_expired
 -----------------------------
@@ -340,7 +338,7 @@ This feature was first introduced in the `v0.6.3` release.
 
 See also [flush_all](#flush_all) and [dict](#).
 
-[Back to TOC](#nginx-api-for-lua)
+[Back to TOC](#nginx-shared-dict-api-for-lua)
 
 get_keys
 ------------------------
@@ -356,4 +354,4 @@ By default, only the first 1024 keys (if any) are returned. When the `<max_count
 
 This feature was first introduced in the `v0.7.3` release.
 
-[Back to TOC](#nginx-api-for-lua)
+[Back to TOC](#nginx-shared-dict-api-for-lua)

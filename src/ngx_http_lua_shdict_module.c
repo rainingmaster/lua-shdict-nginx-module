@@ -1302,8 +1302,54 @@ ngx_http_lua_ffi_shdict_pop_helper(ngx_shm_zone_t *zone, u_char *key,
 
 
 int
+ngx_http_lua_ffi_shdict_llen(ngx_shm_zone_t *zone, u_char *key,
+    size_t key_len, int *value_num, char **errmsg)
+{
+    uint32_t                     hash;
+    ngx_int_t                    rc;
+    ngx_http_lua_shdict_ctx_t   *ctx;
+    ngx_http_lua_shdict_node_t  *sd;
+
+    ctx = zone->data;
+
+    hash = ngx_crc32_short(key, key_len);
+
+    ngx_shmtx_lock(&ctx->shpool->mutex);
+
+    ngx_http_lua_shdict_expire(ctx, 1);
+
+    rc = ngx_http_lua_shdict_lookup(zone, hash, key, key_len, &sd);
+
+    dd("shdict lookup returned %d", (int) rc);
+
+    if (rc == NGX_OK) {
+
+        if (sd->value_type != SHDICT_TLIST) {
+            ngx_shmtx_unlock(&ctx->shpool->mutex);
+
+            *errmsg = "value not a list";
+            return NGX_ERROR;
+        }
+
+        ngx_queue_remove(&sd->queue);
+        ngx_queue_insert_head(&ctx->sh->lru_queue, &sd->queue);
+
+        ngx_shmtx_unlock(&ctx->shpool->mutex);
+
+        *value_num = sd->value_len;
+        return NGX_OK;
+    }
+
+    ngx_shmtx_unlock(&ctx->shpool->mutex);
+
+    *value_num = 0;
+    return NGX_OK;
+}
+
+
+int
 ngx_http_lua_ffi_shdict_get_keys(ngx_shm_zone_t *zone, int attempts,
-    ngx_str_t **keys_buf, size_t *key_num, char **err)
+    ngx_str_t **keys_buf, size_t *key_num, char **errmsg)
 {
     ngx_queue_t                 *q, *prev;
     ngx_time_t                  *tp;
@@ -1317,7 +1363,7 @@ ngx_http_lua_ffi_shdict_get_keys(ngx_shm_zone_t *zone, int attempts,
         return NGX_ERROR;
     }
 
-    *err = NULL;
+    *errmsg = NULL;
 
     ctx = zone->data;
 
@@ -1376,6 +1422,107 @@ ngx_http_lua_ffi_shdict_get_keys(ngx_shm_zone_t *zone, int attempts,
             keys[total].len = sd->key_len;
             ++total;
             if (attempts && total == attempts) {
+                break;
+            }
+        }
+
+        q = prev;
+    }
+
+    ngx_shmtx_unlock(&ctx->shpool->mutex);
+
+    return NGX_OK;
+}
+
+
+int
+ngx_http_lua_ffi_shdict_flush(ngx_shm_zone_t *zone, char **errmsg)
+{
+    ngx_queue_t                 *q;
+    ngx_http_lua_shdict_node_t  *sd;
+    ngx_http_lua_shdict_ctx_t   *ctx;
+
+    ctx = zone->data;
+
+    ngx_shmtx_lock(&ctx->shpool->mutex);
+
+    for (q = ngx_queue_head(&ctx->sh->lru_queue);
+         q != ngx_queue_sentinel(&ctx->sh->lru_queue);
+         q = ngx_queue_next(q))
+    {
+        sd = ngx_queue_data(q, ngx_http_lua_shdict_node_t, queue);
+        sd->expires = 1;
+    }
+
+    ngx_http_lua_shdict_expire(ctx, 0);
+
+    ngx_shmtx_unlock(&ctx->shpool->mutex);
+
+    return NGX_OK;
+}
+
+
+int
+ngx_http_lua_ffi_shdict_flush_expired(ngx_shm_zone_t *zone, int attempts,
+    int *freed, char **errmsg)
+{
+    ngx_queue_t                     *q, *prev, *list_queue, *lq;
+    ngx_http_lua_shdict_node_t      *sd;
+    ngx_http_lua_shdict_ctx_t       *ctx;
+    ngx_time_t                      *tp;
+    ngx_rbtree_node_t               *node;
+    uint64_t                         now;
+    int                              n;
+    ngx_http_lua_shdict_list_node_t *lnode;
+
+    ctx = zone->data;
+
+    ngx_shmtx_lock(&ctx->shpool->mutex);
+
+    *freed = 0;
+
+    if (ngx_queue_empty(&ctx->sh->lru_queue)) {
+        ngx_shmtx_unlock(&ctx->shpool->mutex);
+        return NGX_OK;
+    }
+
+    tp = ngx_timeofday();
+
+    now = (uint64_t) tp->sec * 1000 + tp->msec;
+
+    q = ngx_queue_last(&ctx->sh->lru_queue);
+
+    while (q != ngx_queue_sentinel(&ctx->sh->lru_queue)) {
+        prev = ngx_queue_prev(q);
+
+        sd = ngx_queue_data(q, ngx_http_lua_shdict_node_t, queue);
+
+        if (sd->expires != 0 && sd->expires <= now) {
+
+            if (sd->value_type == SHDICT_TLIST) {
+                list_queue = ngx_http_lua_shdict_get_list_head(sd, sd->key_len);
+
+                for (lq = ngx_queue_head(list_queue);
+                     lq != ngx_queue_sentinel(list_queue);
+                     lq = ngx_queue_next(lq))
+                {
+                    lnode = ngx_queue_data(lq, ngx_http_lua_shdict_list_node_t,
+                                           queue);
+
+                    ngx_slab_free_locked(ctx->shpool, lnode);
+                }
+            }
+
+            ngx_queue_remove(q);
+
+            node = (ngx_rbtree_node_t *)
+                ((u_char *) sd - offsetof(ngx_rbtree_node_t, color));
+
+            ngx_rbtree_delete(&ctx->sh->rbtree, node);
+            ngx_slab_free_locked(ctx->shpool, node);
+            (*freed)++;
+
+            if (attempts && *freed == attempts) {
                 break;
             }
         }
