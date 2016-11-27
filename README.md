@@ -46,7 +46,13 @@ The `<size>` argument accepts size units such as `k` and `m`:
  }
 ```
 
-Use `require('resty.shdict')` to get the Lua table, and following example will be based on the above settings.
+Use following script to get the Lua table:
+```lua
+  local t = require('resty.shdict')
+  local dict = t.dict
+```
+
+Following example will be based on the above settings.
 
 See [Nginx shared dict API for Lua](#nginxshareddictapiforlua) for details.
 
