@@ -61,6 +61,10 @@ ffi.cdef[[
         
     int ngx_http_lua_ffi_shdict_flush_expired(void *zone, int attempts,
         int *freed, char **errmsg);
+
+    int ngx_http_lua_ffi_shdict_incr_helper(void *zone, const unsigned char *key,
+        size_t key_len, double *value, char **err, int has_init, double init,
+        int *forcible);
         
     int ngx_http_lua_ffi_shdict_get_keys(void *zone, int attempts,
         ngx_str_t **keys_buf, size_t *key_num, char **errmsg);
@@ -83,11 +87,46 @@ local str_value_buf = ffi_new("unsigned char *[1]")
 local errmsg = base.get_errmsg_ptr()
 
 
+local function check_zone(zone)
+    if not zone or type(zone) ~= "table" then
+        return error("bad \"zone\" argument")
+    end
+
+    zone = zone[ZONE_INDEX]
+    if not zone or type(zone) ~= "cdata" then
+        return error("bad \"zone\" argument")
+    end
+
+    return zone
+end
+
+
+local function check_key(key)
+    if key == nil then
+        return error("nil key")
+    end
+
+    key = tostring(key)
+
+    local key_len = #key
+
+    if key_len == 0 then
+        return error("empty key")
+    end
+
+    if key_len > 65535 then
+        return error("key too long")
+    end
+    
+    return key, key_len
+end
+
+
 local function shdict_find(name)
     local zones = ffi_new("void *[1]")
     local rc = C.ngx_http_lua_ffi_shdict_find_zone(zones, name, #name)
     if rc ~= NGX_OK then
-        return
+        return nil
     end
 
     return zones[0]
@@ -95,26 +134,9 @@ end
 
 
 local function shdict_push(zone, flag, key, value)
-    zone = zone[ZONE_INDEX]
-    if not zone or type(zone) ~= "cdata" then
-        return error("bad \"zone\" argument")
-    end
+    local meta_zone = check_zone(zone)
 
-    if key == nil then
-        return nil, "nil key"
-    end
-
-    if type(key) ~= "string" then
-        key = tostring(key)
-    end
-
-    local key_len = #key
-    if key_len == 0 then
-        return nil, "empty key"
-    end
-    if key_len > 65535 then
-        return nil, "key too long"
-    end
+    local key, key_len = check_key(key)
 
     local str_value_buf
     local str_value_len = 0
@@ -136,17 +158,17 @@ local function shdict_push(zone, flag, key, value)
     
     local value_len = ffi_new("int[1]")
 
-    local rc = C.ngx_http_lua_ffi_shdict_push_helper(zone, key, key_len,
+    local rc = C.ngx_http_lua_ffi_shdict_push_helper(meta_zone, key, key_len,
                                                     valtyp, str_value_buf,
                                                     str_value_len, num_value,
                                                     value_len, flag, errmsg)
 
     if rc == NGX_OK then  -- NGX_OK
-        return true, tonumber(value_len)
+        return tonumber(value_len[0])
     end
 
     -- NGX_DECLINED or NGX_ERROR
-    return false, ffi_str(errmsg[0])
+    return nil, ffi_str(errmsg[0])
 end
 
 
@@ -161,35 +183,22 @@ end
 
 
 local function shdict_pop(zone, flag, key)
-    zone = zone[ZONE_INDEX]
-    if not zone or type(zone) ~= "cdata" then
-        return error("bad \"zone\" argument")
-    end
+    local meta_zone = check_zone(zone)
 
-    if key == nil then
-        return nil, "nil key"
-    end
+    local key, key_len = check_key(key)
 
-    if type(key) ~= "string" then
-        key = tostring(key)
-    end
+    local size = get_string_buf_size()
+    local buf = get_string_buf(size)
+    str_value_buf[0] = buf
+    local str_value_len = get_size_ptr()
+    str_value_len[0] = size
 
-    local key_len = #key
-    if key_len == 0 then
-        return nil, "empty key"
-    end
-    if key_len > 65535 then
-        return nil, "key too long"
-    end
-
-    local value_len = get_size_ptr()
-
-    local rc = C.ngx_http_lua_ffi_shdict_pop_helper(zone, key, key_len, value_type, 
-                                                  str_value_buf, value_len, num_value, 
+    local rc = C.ngx_http_lua_ffi_shdict_pop_helper(meta_zone, key, key_len, value_type, 
+                                                  str_value_buf, str_value_len, num_value, 
                                                   flag, errmsg)
 
     if rc ~= NGX_OK then
-        return error("failed to pop the key")
+        return nil, ffi_str(errmsg[0])
     end
 
     local typ = tonumber(value_type[0])
@@ -199,10 +208,10 @@ local function shdict_pop(zone, flag, key)
     if typ == 4 then -- LUA_TSTRING
         if str_value_buf[0] ~= buf then
             buf = str_value_buf[0]
-            val = ffi_str(buf, value_len[0])
+            val = ffi_str(buf, str_value_len[0])
             C.free(buf)
         else
-            val = ffi_str(buf, value_len[0])
+            val = ffi_str(buf, str_value_len[0])
         end
 
     elseif typ == 3 then -- LUA_TNUMBER
@@ -230,46 +239,24 @@ end
 
 
 local function shdict_llen(zone, key)
-    zone = zone[ZONE_INDEX]
-    if not zone or type(zone) ~= "cdata" then
-        return error("bad \"zone\" argument")
-    end
+    local meta_zone = check_zone(zone)
 
-    if key == nil then
-        return nil, "nil key"
-    end
-
-    if type(key) ~= "string" then
-        key = tostring(key)
-    end
-
-    local key_len = #key
-    if key_len == 0 then
-        return nil, "empty key"
-    end
-    if key_len > 65535 then
-        return nil, "key too long"
-    end
+    local key, key_len = check_key(key)
 
     local value_num = ffi_new("int[1]")
 
-    local rc = C.ngx_http_lua_ffi_shdict_llen(zone, key, key_len, value_num, errmsg)
+    local rc = C.ngx_http_lua_ffi_shdict_llen(meta_zone, key, key_len, value_num, errmsg)
 
     if rc ~= NGX_OK then
-        return error("failed to pop the key")
+        return nil, ffi_str(errmsg[0])
     end
 
-    local val = tonumber(value_num[0])
-
-    return val
+    return tonumber(value_num[0])
 end
 
 
 local function shdict_store(zone, op, key, value, exptime, flags)
-    zone = zone[ZONE_INDEX]
-    if not zone or type(zone) ~= "cdata" then
-        return error('bad "zone" argument')
-    end
+    local meta_zone = check_zone(zone)
 
     if not exptime then
         exptime = 0
@@ -279,21 +266,7 @@ local function shdict_store(zone, op, key, value, exptime, flags)
         flags = 0
     end
 
-    if key == nil then
-        return nil, "nil key"
-    end
-
-    if type(key) ~= "string" then
-        key = tostring(key)
-    end
-
-    local key_len = #key
-    if key_len == 0 then
-        return nil, "empty key"
-    end
-    if key_len > 65535 then
-        return nil, "key too long"
-    end
+    local key, key_len = check_key(key)
 
     local str_value_buf
     local str_value_len = 0
@@ -320,7 +293,7 @@ local function shdict_store(zone, op, key, value, exptime, flags)
         return nil, "bad value type"
     end
 
-    local rc = C.ngx_http_lua_ffi_shdict_store_helper(zone, op, key, key_len,
+    local rc = C.ngx_http_lua_ffi_shdict_store_helper(meta_zone, op, key, key_len,
                                                     valtyp, str_value_buf,
                                                     str_value_len, num_value,
                                                     exptime * 1000, flags, errmsg,
@@ -331,7 +304,7 @@ local function shdict_store(zone, op, key, value, exptime, flags)
     end
 
     -- NGX_DECLINED or NGX_ERROR
-    return false, ffi_str(errmsg[0]), forcible[0] == 1
+    return nil, ffi_str(errmsg[0]), forcible[0] == 1
 end
 
 
@@ -366,39 +339,22 @@ end
 
 
 local function shdict_get(zone, key)
-    zone = zone[ZONE_INDEX]
-    if not zone or type(zone) ~= "cdata" then
-        return error('bad "zone" argument')
-    end
+    local meta_zone = check_zone(zone)
 
-    if key == nil then
-        return nil, "nil key"
-    end
-
-    if type(key) ~= "string" then
-        key = tostring(key)
-    end
-
-    local key_len = #key
-    if key_len == 0 then
-        return nil, "empty key"
-    end
-    if key_len > 65535 then
-        return nil, "key too long"
-    end
+    local key, key_len = check_key(key)
 
     local size = get_string_buf_size()
     local buf = get_string_buf(size)
     str_value_buf[0] = buf
-    local value_len = get_size_ptr()
-    value_len[0] = size
+    local str_value_len = get_size_ptr()
+    str_value_len[0] = size
 
-    local rc = C.ngx_http_lua_ffi_shdict_get_helper(zone, key, key_len, value_type,
-                                                  str_value_buf, value_len,
+    local rc = C.ngx_http_lua_ffi_shdict_get_helper(meta_zone, key, key_len, value_type,
+                                                  str_value_buf, str_value_len,
                                                   num_value, user_flags, 0,
                                                   is_stale, errmsg)
     if rc ~= NGX_OK then
-        return error("failed to get the key")
+        return nil, ffi_str(errmsg[0])
     end
 
     local typ = value_type[0]
@@ -414,10 +370,10 @@ local function shdict_get(zone, key)
     if typ == 4 then -- LUA_TSTRING
         if str_value_buf[0] ~= buf then
             buf = str_value_buf[0]
-            val = ffi_str(buf, value_len[0])
+            val = ffi_str(buf, str_value_len[0])
             C.free(buf)
         else
-            val = ffi_str(buf, value_len[0])
+            val = ffi_str(buf, str_value_len[0])
         end
 
     elseif typ == 3 then -- LUA_TNUMBER
@@ -439,26 +395,9 @@ end
 
 
 local function shdict_get_stale(zone, key)
-    zone = zone[ZONE_INDEX]
-    if not zone or type(zone) ~= "cdata" then
-        return error("bad \"zone\" argument")
-    end
+    local meta_zone =check_zone(zone)
 
-    if key == nil then
-        return nil, "nil key"
-    end
-
-    if type(key) ~= "string" then
-        key = tostring(key)
-    end
-
-    local key_len = #key
-    if key_len == 0 then
-        return nil, "empty key"
-    end
-    if key_len > 65535 then
-        return nil, "key too long"
-    end
+    local key, key_len = check_key(key)
 
     local size = get_string_buf_size()
     local buf = get_string_buf(size)
@@ -466,7 +405,7 @@ local function shdict_get_stale(zone, key)
     local value_len = get_size_ptr()
     value_len[0] = size
 
-    local rc = C.ngx_http_lua_ffi_shdict_get_zone(zone, key, key_len, value_type,
+    local rc = C.ngx_http_lua_ffi_shdict_get_zone(meta_zone, key, key_len, value_type,
                                                   str_value_buf, value_len,
                                                   num_value, user_flags, 1,
                                                   is_stale, errmsg)
@@ -512,12 +451,9 @@ end
 
 
 local function shdict_flush_all(zone)
-    zone = zone[ZONE_INDEX]
-    if not zone or type(zone) ~= "cdata" then
-        return error("bad \"zone\" argument")
-    end
+    local meta_zone = check_zone(zone)
 
-    local rc = C.ngx_http_lua_ffi_shdict_flush(zone, errmsg)
+    local rc = C.ngx_http_lua_ffi_shdict_flush(meta_zone, errmsg)
     if rc ~= 0 then
         return nil, "failed to flush"
     end
@@ -527,19 +463,16 @@ end
 
 
 local function shdict_flush_expired(zone, attempts)
-    zone = zone[ZONE_INDEX]
-    if not zone or type(zone) ~= "cdata" then
-        return error("bad \"zone\" argument")
-    end
-    
+    local meta_zone = check_zone(zone)
+
     attempts = tonumber(attempts)
     if not attempts then
-        attempts = 1024
+        attempts = 0
     end
 
     local freed = ffi_new("int[1]")
 
-    local rc = C.ngx_http_lua_ffi_shdict_flush_expired(zone, attempts, freed, errmsg)
+    local rc = C.ngx_http_lua_ffi_shdict_flush_expired(meta_zone, attempts, freed, errmsg)
     if rc ~= 0 then
         return error("failed get flush expire")
     end
@@ -548,11 +481,52 @@ local function shdict_flush_expired(zone, attempts)
 end
 
 
-local function shdict_get_keys(zone, attempts)
-    zone = zone[ZONE_INDEX]
-    if not zone or type(zone) ~= "cdata" then
-        return error("bad \"zone\" argument")
+local function shdict_incr(zone, key, value, init)
+    local meta_zone = check_zone(zone)
+
+    local key, key_len = check_key(key)
+
+    if type(value) ~= "number" then
+        value = tonumber(value)
     end
+    num_value[0] = value
+
+    local has_init
+
+    if init then
+        local typ = type(init)
+        if typ ~= "number" then
+            init = tonumber(init)
+
+            if not init then
+                return error("bad init arg: number expected, got " .. typ)
+            end
+        end
+
+        has_init = 1
+
+    else
+        has_init = 0
+        init = 0
+    end
+
+    local rc = C.ngx_http_lua_ffi_shdict_incr_helper(meta_zone, key, key_len, num_value,
+                                              errmsg, has_init, init,
+                                              forcible)
+    if rc ~= 0 then  -- ~= NGX_OK
+        return nil, ffi_str(errmsg[0])
+    end
+
+    if has_init == 0 then
+        return tonumber(num_value[0])
+    end
+
+    return tonumber(num_value[0]), nil, forcible[0] == 1
+end
+
+
+local function shdict_get_keys(zone, attempts)
+    local meta_zone = check_zone(zone)
 
     local keys_buf = ffi_new("ngx_str_t *[1]")
     local key_num = get_size_ptr()
@@ -562,7 +536,7 @@ local function shdict_get_keys(zone, attempts)
         attempts = 1024
     end
 
-    local rc = C.ngx_http_lua_ffi_shdict_get_keys(zone, attempts, keys_buf,
+    local rc = C.ngx_http_lua_ffi_shdict_get_keys(meta_zone, attempts, keys_buf,
         key_num, errmsg)
     if rc ~= 0 then
         C.free(keys_buf[0])
@@ -593,6 +567,7 @@ func.rpush              = shdict_rpush
 func.lpop               = shdict_lpop
 func.rpop               = shdict_rpop
 func.llen               = shdict_llen
+func.incr               = shdict_incr
 func.flush_expired      = shdict_flush_expired
 func.flush_all          = shdict_flush_all
 
@@ -639,13 +614,6 @@ end
 --get_all()
 set_index()
 
-_M.peter:set("111", 2222)
-_M.peter:set("112", 2222)
-_M.peter:set("113", 2222)
-_M.peter:get_keys()
 
-
-return {
-    version = base.version
-}
+return _M
 
