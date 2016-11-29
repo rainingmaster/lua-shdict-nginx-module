@@ -1,11 +1,16 @@
 # vim:set ft= ts=4 sw=4 et fdm=marker:
-use Test::Nginx::Socket::Lua;
+
+use Test::Nginx::Socket::Lua 'no_plan';
 use Cwd qw(cwd);
 
+#worker_connections(1014);
+#master_on();
+#workers(2);
 #log_level('warn');
 
+repeat_each(1);
 
-plan tests => repeat_each() * (blocks() * 3);
+#plan tests => repeat_each() * (blocks() * 3);
 
 my $pwd = cwd();
 
