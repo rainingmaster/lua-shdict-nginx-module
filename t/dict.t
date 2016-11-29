@@ -1,10 +1,13 @@
 # vim:set ft= ts=4 sw=4 et fdm=marker:
 use Test::Nginx::Socket::Lua;
+use Cwd qw(cwd);
 
 #log_level('warn');
 
 
 plan tests => repeat_each() * (blocks() * 3);
+
+my $pwd = cwd();
 
 #no_diff();
 no_long_string();
@@ -14,6 +17,7 @@ __DATA__
 
 === TEST 1: lpush & lpop
 --- http_config
+    lua_package_path "$pwd/lib/?.lua;$pwd/t/lib/?.lua;;";
     lua_shared_mem dict 1m;
 --- config
     location = /test {
@@ -56,6 +60,7 @@ nil nil
 
 === TEST 2: get operation on list type
 --- http_config
+    lua_package_path "$pwd/lib/?.lua;$pwd/t/lib/?.lua;;";
     lua_shared_mem dict 1m;
 --- config
     location = /test {
@@ -86,6 +91,7 @@ nil value is a list
 
 === TEST 3: set operation on list type
 --- http_config
+    lua_package_path "$pwd/lib/?.lua;$pwd/t/lib/?.lua;;";
     lua_shared_mem dict 1m;
 --- config
     location = /test {
