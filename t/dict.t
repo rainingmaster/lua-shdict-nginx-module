@@ -9,6 +9,11 @@ plan tests => repeat_each() * (blocks() * 3);
 
 my $pwd = cwd();
 
+our $HttpConfig = qq{
+    lua_package_path "$pwd/t/lib/?.lua;$pwd/lib/?.lua;;";
+    lua_shared_mem dict 900k;
+};
+
 #no_diff();
 no_long_string();
 run_tests();
@@ -16,9 +21,7 @@ run_tests();
 __DATA__
 
 === TEST 1: lpush & lpop
---- http_config
-    lua_package_path "$pwd/lib/?.lua;$pwd/t/lib/?.lua;;";
-    lua_shared_mem dict 1m;
+--- http_config eval: $::HttpConfig
 --- config
     location = /test {
         content_by_lua_block {
@@ -59,9 +62,7 @@ nil nil
 
 
 === TEST 2: get operation on list type
---- http_config
-    lua_package_path "$pwd/lib/?.lua;$pwd/t/lib/?.lua;;";
-    lua_shared_mem dict 1m;
+--- http_config eval: $::HttpConfig
 --- config
     location = /test {
         content_by_lua_block {
@@ -90,9 +91,7 @@ nil value is a list
 
 
 === TEST 3: set operation on list type
---- http_config
-    lua_package_path "$pwd/lib/?.lua;$pwd/t/lib/?.lua;;";
-    lua_shared_mem dict 1m;
+--- http_config eval: $::HttpConfig
 --- config
     location = /test {
         content_by_lua_block {
@@ -125,8 +124,7 @@ bar nil
 
 
 === TEST 4: replace operation on list type
---- http_config
-    lua_shared_mem dict 1m;
+--- http_config eval: $::HttpConfig
 --- config
     location = /test {
         content_by_lua_block {
@@ -159,8 +157,7 @@ bar nil
 
 
 === TEST 5: add operation on list type
---- http_config
-    lua_shared_mem dict 1m;
+--- http_config eval: $::HttpConfig
 --- config
     location = /test {
         content_by_lua_block {
@@ -193,8 +190,7 @@ nil value is a list
 
 
 === TEST 6: delete operation on list type
---- http_config
-    lua_shared_mem dict 1m;
+--- http_config eval: $::HttpConfig
 --- config
     location = /test {
         content_by_lua_block {
@@ -227,8 +223,7 @@ nil nil
 
 
 === TEST 7: incr operation on list type
---- http_config
-    lua_shared_mem dict 1m;
+--- http_config eval: $::HttpConfig
 --- config
     location = /test {
         content_by_lua_block {
@@ -261,8 +256,7 @@ nil value is a list
 
 
 === TEST 8: get_keys operation on list type
---- http_config
-    lua_shared_mem dict 1m;
+--- http_config eval: $::HttpConfig
 --- config
     location = /test {
         content_by_lua_block {
@@ -291,8 +285,7 @@ key: foo
 
 
 === TEST 9: push operation on key-value type
---- http_config
-    lua_shared_mem dict 1m;
+--- http_config eval: $::HttpConfig
 --- config
     location = /test {
         content_by_lua_block {
@@ -325,8 +318,7 @@ bar nil
 
 
 === TEST 10: pop operation on key-value type
---- http_config
-    lua_shared_mem dict 1m;
+--- http_config eval: $::HttpConfig
 --- config
     location = /test {
         content_by_lua_block {
@@ -359,8 +351,7 @@ bar nil
 
 
 === TEST 11: llen operation on key-value type
---- http_config
-    lua_shared_mem dict 1m;
+--- http_config eval: $::HttpConfig
 --- config
     location = /test {
         content_by_lua_block {
@@ -393,8 +384,7 @@ bar nil
 
 
 === TEST 12: lpush and lpop
---- http_config
-    lua_shared_mem dict 1m;
+--- http_config eval: $::HttpConfig
 --- config
     location = /test {
         content_by_lua_block {
@@ -432,8 +422,7 @@ GET /test
 
 
 === TEST 13: lpush and rpop
---- http_config
-    lua_shared_mem dict 1m;
+--- http_config eval: $::HttpConfig
 --- config
     location = /test {
         content_by_lua_block {
@@ -471,8 +460,7 @@ GET /test
 
 
 === TEST 14: rpush and lpop
---- http_config
-    lua_shared_mem dict 1m;
+--- http_config eval: $::HttpConfig
 --- config
     location = /test {
         content_by_lua_block {
@@ -510,8 +498,7 @@ GET /test
 
 
 === TEST 15: list removed: expired
---- http_config
-    lua_shared_mem dict 900k;
+--- http_config eval: $::HttpConfig
 --- config
     location = /test {
         content_by_lua_block {
@@ -580,8 +567,7 @@ loop again, max matched: true
 
 
 === TEST 16: list removed: forcibly
---- http_config
-    lua_shared_mem dict 900k;
+--- http_config eval: $::HttpConfig
 --- config
     location = /test {
         content_by_lua_block {
@@ -644,8 +630,7 @@ two == number 2: true
 
 
 === TEST 17: expire on all types
---- http_config
-    lua_shared_mem dict 1m;
+--- http_config eval: $::HttpConfig
 --- config
     location = /test {
         content_by_lua_block {
@@ -684,8 +669,7 @@ keys number: 0
 
 
 === TEST 18: long list node
---- http_config
-    lua_shared_mem dict 1m;
+--- http_config eval: $::HttpConfig
 --- config
     location = /test {
         content_by_lua_block {
@@ -721,8 +705,7 @@ foofoofoofoofoofoofoofoofoofoo
 
 
 === TEST 19: incr on expired list
---- http_config
-    lua_shared_mem dict 1m;
+--- http_config eval: $::HttpConfig
 --- config
     location = /test {
         content_by_lua_block {

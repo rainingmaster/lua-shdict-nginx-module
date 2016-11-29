@@ -28,5 +28,3 @@ ngx-build $force $version \
           --with-select_module \
           --with-poll_module \
           --with-debug || exit 1
-
-cp $root/lib/resty/shdict.lua $root/work/lualib/resty/shdict.lua || exit 1
