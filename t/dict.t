@@ -1,13 +1,8 @@
 # vim:set ft= ts=4 sw=4 et fdm=marker:
-
 use Test::Nginx::Socket::Lua;
 
-#worker_connections(1014);
-#master_on();
-#workers(2);
 #log_level('warn');
 
-repeat_each(2);
 
 plan tests => repeat_each() * (blocks() * 3);
 
@@ -24,7 +19,7 @@ __DATA__
     location = /test {
         content_by_lua_block {
             local t = require('resty.shdict')
-            local dict = t.dict
+                        local dict = t.dict
 
             local len, err = dict:lpush("foo", "bar")
             if len then
@@ -184,7 +179,7 @@ bar nil
 GET /test
 --- response_body
 push success
-false exists
+nil exists
 nil value is a list
 --- no_error_log
 [error]
@@ -510,7 +505,7 @@ GET /test
 
 === TEST 15: list removed: expired
 --- http_config
-    lua_shared_dict dict 900k;
+    lua_shared_mem dict 900k;
 --- config
     location = /test {
         content_by_lua_block {
@@ -580,7 +575,7 @@ loop again, max matched: true
 
 === TEST 16: list removed: forcibly
 --- http_config
-    lua_shared_dict dict 900k;
+    lua_shared_mem dict 900k;
 --- config
     location = /test {
         content_by_lua_block {

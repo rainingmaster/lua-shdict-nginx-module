@@ -1195,7 +1195,7 @@ ngx_http_lua_ffi_shdict_pop_helper(ngx_shm_zone_t *zone, u_char *key,
 
     value_len = lnode->value_len;
 
-    if (*str_value_len < value_len) {
+    if (*str_value_len < (size_t) value_len) {
         if (*value_type == SHDICT_TSTRING) {
             *str_value_buf = malloc(value_len);
             if (*str_value_buf == NULL) {
@@ -1438,7 +1438,6 @@ ngx_http_lua_ffi_shdict_flush_expired(ngx_shm_zone_t *zone, int attempts,
     ngx_time_t                      *tp;
     ngx_rbtree_node_t               *node;
     uint64_t                         now;
-    int                              n;
     ngx_http_lua_shdict_list_node_t *lnode;
 
     ctx = zone->data;
