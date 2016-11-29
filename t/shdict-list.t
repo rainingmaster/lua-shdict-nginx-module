@@ -1,16 +1,9 @@
 # vim:set ft= ts=4 sw=4 et fdm=marker:
 
-use Test::Nginx::Socket::Lua 'no_plan';
+use Test::Nginx::Socket::Lua;
 use Cwd qw(cwd);
 
-#worker_connections(1014);
-#master_on();
-#workers(2);
-#log_level('warn');
-
-repeat_each(1);
-
-#plan tests => repeat_each() * (blocks() * 3);
+plan tests => repeat_each() * (blocks() * 3);
 
 my $pwd = cwd();
 
@@ -30,8 +23,8 @@ __DATA__
 --- config
     location = /test {
         content_by_lua_block {
-            local t = require('resty.shdict')
-                        local dict = t.dict
+            local t = require("resty.shdict")
+            local dict = t.dict
 
             local len, err = dict:lpush("foo", "bar")
             if len then
@@ -71,7 +64,7 @@ nil nil
 --- config
     location = /test {
         content_by_lua_block {
-            local t = require('resty.shdict')
+            local t = require("resty.shdict")
             local dict = t.dict
 
             local len, err = dict:lpush("foo", "bar")
@@ -100,7 +93,7 @@ nil value is a list
 --- config
     location = /test {
         content_by_lua_block {
-            local t = require('resty.shdict')
+            local t = require("resty.shdict")
             local dict = t.dict
 
             local len, err = dict:lpush("foo", "bar")
@@ -133,7 +126,7 @@ bar nil
 --- config
     location = /test {
         content_by_lua_block {
-            local t = require('resty.shdict')
+            local t = require("resty.shdict")
             local dict = t.dict
 
             local len, err = dict:lpush("foo", "bar")
@@ -166,7 +159,7 @@ bar nil
 --- config
     location = /test {
         content_by_lua_block {
-            local t = require('resty.shdict')
+            local t = require("resty.shdict")
             local dict = t.dict
 
             local len, err = dict:lpush("foo", "bar")
@@ -187,7 +180,7 @@ bar nil
 GET /test
 --- response_body
 push success
-nil exists
+false exists
 nil value is a list
 --- no_error_log
 [error]
@@ -199,7 +192,7 @@ nil value is a list
 --- config
     location = /test {
         content_by_lua_block {
-            local t = require('resty.shdict')
+            local t = require("resty.shdict")
             local dict = t.dict
 
             local len, err = dict:lpush("foo", "bar")
@@ -232,7 +225,7 @@ nil nil
 --- config
     location = /test {
         content_by_lua_block {
-            local t = require('resty.shdict')
+            local t = require("resty.shdict")
             local dict = t.dict
 
             local len, err = dict:lpush("foo", "bar")
@@ -265,7 +258,7 @@ nil value is a list
 --- config
     location = /test {
         content_by_lua_block {
-            local t = require('resty.shdict')
+            local t = require("resty.shdict")
             local dict = t.dict
 
             local len, err = dict:lpush("foo", "bar")
@@ -294,7 +287,7 @@ key: foo
 --- config
     location = /test {
         content_by_lua_block {
-            local t = require('resty.shdict')
+            local t = require("resty.shdict")
             local dict = t.dict
 
             local ok, err = dict:set("foo", "bar")
@@ -327,7 +320,7 @@ bar nil
 --- config
     location = /test {
         content_by_lua_block {
-            local t = require('resty.shdict')
+            local t = require("resty.shdict")
             local dict = t.dict
 
             local ok, err = dict:set("foo", "bar")
@@ -360,7 +353,7 @@ bar nil
 --- config
     location = /test {
         content_by_lua_block {
-            local t = require('resty.shdict')
+            local t = require("resty.shdict")
             local dict = t.dict
 
             local ok, err = dict:set("foo", "bar")
@@ -393,7 +386,7 @@ bar nil
 --- config
     location = /test {
         content_by_lua_block {
-            local t = require('resty.shdict')
+            local t = require("resty.shdict")
             local dict = t.dict
 
             for i = 1, 3 do
@@ -431,7 +424,7 @@ GET /test
 --- config
     location = /test {
         content_by_lua_block {
-            local t = require('resty.shdict')
+            local t = require("resty.shdict")
             local dict = t.dict
 
             for i = 1, 3 do
@@ -469,7 +462,7 @@ GET /test
 --- config
     location = /test {
         content_by_lua_block {
-            local t = require('resty.shdict')
+            local t = require("resty.shdict")
             local dict = t.dict
 
             for i = 1, 3 do
@@ -507,7 +500,7 @@ GET /test
 --- config
     location = /test {
         content_by_lua_block {
-            local t = require('resty.shdict')
+            local t = require("resty.shdict")
             local dict = t.dict
 
             local N = 100000
@@ -576,7 +569,7 @@ loop again, max matched: true
 --- config
     location = /test {
         content_by_lua_block {
-            local t = require('resty.shdict')
+            local t = require("resty.shdict")
             local dict = t.dict
 
             local N = 200000
@@ -639,7 +632,7 @@ two == number 2: true
 --- config
     location = /test {
         content_by_lua_block {
-            local t = require('resty.shdict')
+            local t = require("resty.shdict")
             local dict = t.dict
 
             local len, err = dict:lpush("list", "foo")
@@ -678,7 +671,7 @@ keys number: 0
 --- config
     location = /test {
         content_by_lua_block {
-            local t = require('resty.shdict')
+            local t = require("resty.shdict")
             local dict = t.dict
 
             local long_str = string.rep("foo", 10)
@@ -714,7 +707,7 @@ foofoofoofoofoofoofoofoofoofoo
 --- config
     location = /test {
         content_by_lua_block {
-            local t = require('resty.shdict')
+            local t = require("resty.shdict")
             local dict = t.dict
 
             local long_str = string.rep("foo", 10 * 1024) -- 30k
