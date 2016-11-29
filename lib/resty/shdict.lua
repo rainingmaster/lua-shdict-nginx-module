@@ -1,28 +1,37 @@
 
 
-local ffi = require 'ffi'
-local base = require "resty.core.base"
+local ffi          = require 'ffi'
 
-local ffi_new = ffi.new
-local ffi_str = ffi.string
-local C = ffi.C
-local get_string_buf = base.get_string_buf
-local get_string_buf_size = base.get_string_buf_size
-local get_size_ptr = base.get_size_ptr
-local new_tab = base.new_tab
-local tonumber = tonumber
-local tostring = tostring
-local next = next
-local type = type
-local error = error
+local ffi_new      = ffi.new
+local ffi_str      = ffi.string
+local C            = ffi.C
+
+local tonumber     = tonumber
+local tostring     = tostring
+local next         = next
+local type         = type
+local error        = error
 local getmetatable = getmetatable
-local NGX_OK = 0
+local NGX_OK       = 0
 
 
-local _M = {}
-local ZONE_INDEX = 1
-local func = {}
-func.__index = func
+local ZONE_INDEX   = 1
+local func         = {}
+local _M           = {}
+func.__index       = func
+
+
+if not pcall(ffi.typeof, "ngx_str_t") then
+    ffi.cdef[[
+        typedef struct {
+            size_t                 len;
+            const unsigned char   *data;
+        } ngx_str_t;
+
+        struct ngx_http_request_s;
+        typedef struct ngx_http_request_s  ngx_http_request_t;
+    ]]
+end
 
 
 ffi.cdef[[
@@ -78,13 +87,16 @@ if not pcall(function () return C.free end) then
 end
 
 
-local value_type = ffi_new("int[1]")
-local user_flags = ffi_new("int[1]")
-local num_value = ffi_new("double[1]")
-local is_stale = ffi_new("int[1]")
-local forcible = ffi_new("int[1]")
-local str_value_buf = ffi_new("unsigned char *[1]")
-local errmsg = base.get_errmsg_ptr()
+local str_buf_size   = 4096
+local value_type     = ffi_new("int[1]")
+local user_flags     = ffi_new("int[1]")
+local num_value      = ffi_new("double[1]")
+local is_stale       = ffi_new("int[1]")
+local forcible       = ffi_new("int[1]")
+local str_value_buf  = ffi_new("unsigned char *[1]")
+local str_value_len  = ffi_new("size_t[1]")
+local errmsg         = ffi_new("char *[1]")
+local str_buf        = ffi_new("char [?]", str_buf_size)
 
 
 local function check_zone(zone)
@@ -187,11 +199,8 @@ local function shdict_pop(zone, flag, key)
 
     local key, key_len = check_key(key)
 
-    local size = get_string_buf_size()
-    local buf = get_string_buf(size)
-    str_value_buf[0] = buf
-    local str_value_len = get_size_ptr()
-    str_value_len[0] = size
+    str_value_buf[0] = str_buf
+    str_value_len[0] = str_buf_size
 
     local rc = C.ngx_http_lua_ffi_shdict_pop_helper(meta_zone, key, key_len, value_type, 
                                                   str_value_buf, str_value_len, num_value, 
@@ -206,12 +215,9 @@ local function shdict_pop(zone, flag, key)
     local val
 
     if typ == 4 then -- LUA_TSTRING
-        if str_value_buf[0] ~= buf then
-            buf = str_value_buf[0]
-            val = ffi_str(buf, str_value_len[0])
-            C.free(buf)
-        else
-            val = ffi_str(buf, str_value_len[0])
+        val = ffi_str(str_value_buf[0], str_value_len[0])
+        if str_value_buf[0] ~= str_buf then
+            C.free(str_value_buf[0])
         end
 
     elseif typ == 3 then -- LUA_TNUMBER
@@ -343,11 +349,8 @@ local function shdict_get(zone, key)
 
     local key, key_len = check_key(key)
 
-    local size = get_string_buf_size()
-    local buf = get_string_buf(size)
-    str_value_buf[0] = buf
-    local str_value_len = get_size_ptr()
-    str_value_len[0] = size
+    str_value_buf[0] = str_buf
+    str_value_len[0] = str_buf_size
 
     local rc = C.ngx_http_lua_ffi_shdict_get_helper(meta_zone, key, key_len, value_type,
                                                   str_value_buf, str_value_len,
@@ -368,12 +371,9 @@ local function shdict_get(zone, key)
     local val
 
     if typ == 4 then -- LUA_TSTRING
-        if str_value_buf[0] ~= buf then
-            buf = str_value_buf[0]
-            val = ffi_str(buf, str_value_len[0])
-            C.free(buf)
-        else
-            val = ffi_str(buf, str_value_len[0])
+        val = ffi_str(str_value_buf[0], str_value_len[0])
+        if str_value_buf[0] ~= str_buf then
+            C.free(str_value_buf[0])
         end
 
     elseif typ == 3 then -- LUA_TNUMBER
@@ -399,14 +399,11 @@ local function shdict_get_stale(zone, key)
 
     local key, key_len = check_key(key)
 
-    local size = get_string_buf_size()
-    local buf = get_string_buf(size)
-    str_value_buf[0] = buf
-    local value_len = get_size_ptr()
-    value_len[0] = size
+    str_value_buf[0] = str_buf
+    str_value_len[0] = str_buf_size
 
     local rc = C.ngx_http_lua_ffi_shdict_get_zone(meta_zone, key, key_len, value_type,
-                                                  str_value_buf, value_len,
+                                                  str_value_buf, str_value_len,
                                                   num_value, user_flags, 1,
                                                   is_stale, errmsg)
     if rc ~= 0 then
@@ -423,13 +420,9 @@ local function shdict_get_stale(zone, key)
     local val
 
     if typ == 4 then -- LUA_TSTRING
-        if str_value_buf[0] ~= buf then
-            -- ngx.say("len: ", tonumber(value_len[0]))
-            buf = str_value_buf[0]
-            val = ffi_str(buf, value_len[0])
-            C.free(buf)
-        else
-            val = ffi_str(buf, value_len[0])
+        val = ffi_str(str_value_buf[0], str_value_len[0])
+        if str_value_buf[0] ~= str_buf then
+            C.free(str_value_buf[0])
         end
 
     elseif typ == 3 then -- LUA_TNUMBER
@@ -529,7 +522,7 @@ local function shdict_get_keys(zone, attempts)
     local meta_zone = check_zone(zone)
 
     local keys_buf = ffi_new("ngx_str_t *[1]")
-    local key_num = get_size_ptr()
+    local key_num = ffi_new("size_t[1]")
 
     attempts = tonumber(attempts)
     if not attempts then
