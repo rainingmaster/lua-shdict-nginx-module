@@ -1,4 +1,9 @@
 
+/*
+ * Copyright (C) Yichun Zhang (agentzh)
+ */
+
+
 #ifndef DDEBUG
 #define DDEBUG 0
 #endif
@@ -492,42 +497,6 @@ ngx_http_lua_ffi_shdict_find_zone(ngx_shm_zone_t **zones, u_char *name_data, siz
     }
 
     return NGX_ERROR;
-}
-
-
-int
-ngx_http_lua_ffi_shdict_get_zones_num()
-{
-    ngx_http_lua_shdict_main_conf_t    *lsmcf;
-
-    lsmcf = ngx_http_cycle_get_module_main_conf(ngx_cycle,
-                                                ngx_http_lua_shdict_module);
-
-    if (lsmcf->shdict_zones != NULL) {
-        return (int) lsmcf->shdict_zones->nelts;
-    }
-
-    return 0;
-}
-
-
-void
-ngx_http_lua_ffi_shdict_get_zones(ngx_str_t *names, ngx_shm_zone_t **zones)
-{
-    ngx_http_lua_shdict_main_conf_t    *lsmcf;
-    ngx_uint_t                            i;
-    ngx_shm_zone_t                      **zone;
-
-    lsmcf = ngx_http_cycle_get_module_main_conf(ngx_cycle,
-                                                ngx_http_lua_shdict_module);
-
-    zone = lsmcf->shdict_zones->elts;
-
-    for (i = 0; i < lsmcf->shdict_zones->nelts; i++) {
-        names[i].data = zone[i]->shm.name.data;
-        names[i].len = zone[i]->shm.name.len;
-        zones[i] = zone[i];
-    }
 }
 
 
@@ -1271,7 +1240,7 @@ ngx_http_lua_ffi_shdict_pop_helper(ngx_shm_zone_t *zone, u_char *key,
 
 int
 ngx_http_lua_ffi_shdict_llen(ngx_shm_zone_t *zone, u_char *key,
-    size_t key_len, int *value_num, char **errmsg)
+    size_t key_len, int *value_len, char **errmsg)
 {
     uint32_t                     hash;
     ngx_int_t                    rc;
@@ -1302,20 +1271,20 @@ ngx_http_lua_ffi_shdict_llen(ngx_shm_zone_t *zone, u_char *key,
 
         ngx_shmtx_unlock(&ctx->shpool->mutex);
 
-        *value_num = sd->value_len;
+        *value_len = sd->value_len;
         return NGX_OK;
     }
 
     ngx_shmtx_unlock(&ctx->shpool->mutex);
 
-    *value_num = 0;
+    *value_len = 0;
     return NGX_OK;
 }
 
 
 int
 ngx_http_lua_ffi_shdict_get_keys(ngx_shm_zone_t *zone, int attempts,
-    ngx_str_t **keys_buf, size_t *key_num, char **errmsg)
+    ngx_str_t **keys_buf, int *keys_num, char **errmsg)
 {
     ngx_queue_t                 *q, *prev;
     ngx_time_t                  *tp;
@@ -1338,7 +1307,7 @@ ngx_http_lua_ffi_shdict_get_keys(ngx_shm_zone_t *zone, int attempts,
     if (ngx_queue_empty(&ctx->sh->lru_queue)) {
         ngx_shmtx_unlock(&ctx->shpool->mutex);
         keys_buf = NULL;
-        *key_num = 0;
+        *keys_num = 0;
         return NGX_OK;
     }
 
@@ -1365,7 +1334,7 @@ ngx_http_lua_ffi_shdict_get_keys(ngx_shm_zone_t *zone, int attempts,
         q = prev;
     }
 
-    *key_num = total;
+    *keys_num = total;
     keys = malloc(total * sizeof(ngx_str_t));
     if (keys == NULL) {
         ngx_shmtx_unlock(&ctx->shpool->mutex);

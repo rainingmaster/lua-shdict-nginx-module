@@ -8,10 +8,9 @@ local C            = ffi.C
 
 local tonumber     = tonumber
 local tostring     = tostring
-local next         = next
 local type         = type
 local error        = error
-local getmetatable = getmetatable
+local setmetatable = setmetatable
 local NGX_OK       = 0
 
 
@@ -64,7 +63,7 @@ ffi.cdef[[
         int flags, char **errmsg);
         
     int ngx_http_lua_ffi_shdict_llen(void *zone, const unsigned char *key,
-        size_t key_len, int *value_num, char **errmsg);
+        size_t key_len, int *value_len, char **errmsg);
         
     int ngx_http_lua_ffi_shdict_flush(void *zone, char **errmsg);
         
@@ -76,7 +75,7 @@ ffi.cdef[[
         int *forcible);
         
     int ngx_http_lua_ffi_shdict_get_keys(void *zone, int attempts,
-        ngx_str_t **keys_buf, size_t *key_num, char **errmsg);
+        ngx_str_t **keys_buf, int *keys_num, char **errmsg);
 ]]
 
 
@@ -88,15 +87,17 @@ end
 
 
 local str_buf_size   = 4096
-local value_type     = ffi_new("int[1]")
+local int_buf        = ffi_new("int[1]")
+
 local user_flags     = ffi_new("int[1]")
-local num_value      = ffi_new("double[1]")
 local is_stale       = ffi_new("int[1]")
 local forcible       = ffi_new("int[1]")
+local num_value      = ffi_new("double[1]")
 local str_value_buf  = ffi_new("unsigned char *[1]")
 local str_value_len  = ffi_new("size_t[1]")
 local errmsg         = ffi_new("char *[1]")
 local str_buf        = ffi_new("char [?]", str_buf_size)
+local ngx_str_buf    = ffi_new("ngx_str_t *[1]")
 
 
 local function check_zone(zone)
@@ -135,13 +136,13 @@ end
 
 
 local function shdict_find(name)
-    local zones = ffi_new("void *[1]")
-    local rc = C.ngx_http_lua_ffi_shdict_find_zone(zones, name, #name)
+    local zone_buf = ffi_new("void *[1]")
+    local rc = C.ngx_http_lua_ffi_shdict_find_zone(zone_buf, name, #name)
     if rc ~= NGX_OK then
         return nil
     end
 
-    return zones[0]
+    return zone_buf[0]
 end
 
 
@@ -171,7 +172,7 @@ local function shdict_push(zone, flag, key, value)
         return nil, "bad value type"
     end
     
-    local value_len = ffi_new("int[1]")
+    local value_len = int_buf
 
     local rc = C.ngx_http_lua_ffi_shdict_push_helper(meta_zone, key, key_len,
                                                     valtyp, str_value_buf,
@@ -207,6 +208,8 @@ local function shdict_pop(zone, flag, key)
 
     str_value_buf[0] = str_buf
     str_value_len[0] = str_buf_size
+    
+    local value_type = int_buf
 
     local rc = C.ngx_http_lua_ffi_shdict_pop_helper(meta_zone, key, key_len, value_type, 
                                                   str_value_buf, str_value_len, num_value, 
@@ -257,16 +260,16 @@ local function shdict_llen(zone, key)
     if key == nil then
         return key, key_len
     end
+    
+    local value_len = int_buf
 
-    local value_num = ffi_new("int[1]")
-
-    local rc = C.ngx_http_lua_ffi_shdict_llen(meta_zone, key, key_len, value_num, errmsg)
+    local rc = C.ngx_http_lua_ffi_shdict_llen(meta_zone, key, key_len, value_len, errmsg)
 
     if rc ~= NGX_OK then
         return nil, ffi_str(errmsg[0])
     end
 
-    return tonumber(value_num[0])
+    return tonumber(value_len[0])
 end
 
 
@@ -370,6 +373,8 @@ local function shdict_get(zone, key, get_stale)
     str_value_len[0] = str_buf_size
     
     get_stale = get_stale or 0
+    
+    local value_type = int_buf
 
     local rc = C.ngx_http_lua_ffi_shdict_get_helper(meta_zone, key, key_len, value_type,
                                                   str_value_buf, str_value_len,
@@ -446,7 +451,7 @@ local function shdict_flush_expired(zone, attempts)
         attempts = 0
     end
 
-    local freed = ffi_new("int[1]")
+    local freed = int_buf
 
     local rc = C.ngx_http_lua_ffi_shdict_flush_expired(meta_zone, attempts, freed, errmsg)
     if rc ~= 0 then
@@ -507,8 +512,8 @@ end
 local function shdict_get_keys(zone, attempts)
     local meta_zone = check_zone(zone)
 
-    local keys_buf = ffi_new("ngx_str_t *[1]")
-    local key_num = ffi_new("size_t[1]")
+    local keys_buf = ngx_str_buf
+    local keys_num = int_buf
 
     attempts = tonumber(attempts)
     if not attempts then
@@ -516,17 +521,20 @@ local function shdict_get_keys(zone, attempts)
     end
 
     local rc = C.ngx_http_lua_ffi_shdict_get_keys(meta_zone, attempts, keys_buf,
-        key_num, errmsg)
+        keys_num, errmsg)
     if rc ~= 0 then
-        C.free(keys_buf[0])
-        return error("failed to get the key")
+        return error("failed to get the keys")
     end
     
     local keys = {}
-    for i = 0, tonumber(key_num[0]) - 1 do
-        keys[#keys + 1] = ffi_str(keys_buf[0][i].data, keys_buf[0][i].len)
+    local num = tonumber(keys_num[0])
+
+    if num > 0 then
+        for i = 0, num - 1 do
+            keys[#keys + 1] = ffi_str(keys_buf[0][i].data, keys_buf[0][i].len)
+        end
+        C.free(keys_buf[0])
     end
-    C.free(keys_buf[0])
     
     return keys
 end
@@ -551,26 +559,6 @@ func.flush_expired      = shdict_flush_expired
 func.flush_all          = shdict_flush_all
 
 
-local function get_all()
-    local num = C.ngx_http_lua_ffi_shdict_get_zones_num()
-
-    if num > 0 then
-        local names = ffi_new("ngx_str_t [?]", num)
-        zones = ffi_new("void *[?]", num)
-
-        C.ngx_http_lua_ffi_shdict_get_zones(names, zones)
-
-        _M = new_tab(0, num)
-
-        for i = 0, num - 1 do
-            local name = ffi_str(names[i].data, names[i].len)
-
-            _M[name] = setmetatable({ [ZONE_INDEX] = zones[i] }, func)
-        end
-    end
-end
-
-
 local function set_index()
     local mt = {
         __index = function(tb, name)
@@ -590,7 +578,6 @@ local function set_index()
 end
 
 
---get_all()
 set_index()
 
 
