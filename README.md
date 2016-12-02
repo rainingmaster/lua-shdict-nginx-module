@@ -83,6 +83,8 @@ The resulting object `dict` has the following methods:
 * [flush_all](#flush_all)
 * [flush_expired](#flush_expired)
 * [get_keys](#get_keys)
+* [expire](#expire)
+* [ttl](#ttl)
 
 
 get
@@ -324,8 +326,6 @@ flush_all
 
 Flushes out all the items in the dictionary. This method does not actuall free up all the memory blocks in the dictionary but just marks all the existing items as expired.
 
-This feature was first introduced in the `v0.5.0rc17` release.
-
 See also [flush_expired](#flush_expired) and [dict](#).
 
 [Back to TOC](#nginx-shared-dict-api-for-lua)
@@ -339,8 +339,6 @@ flush_expired
 Flushes out the expired items in the dictionary, up to the maximal number specified by the optional `max_count` argument. When the `max_count` argument is given `0` or not given at all, then it means unlimited. Returns the number of items that have actually been flushed.
 
 Unlike the [flush_all](#flush_all) method, this method actually free up the memory used by the expired items.
-
-This feature was first introduced in the `v0.6.3` release.
 
 See also [flush_all](#flush_all) and [dict](#).
 
@@ -358,6 +356,28 @@ By default, only the first 1024 keys (if any) are returned. When the `<max_count
 
 **WARNING** Be careful when calling this method on dictionaries with a really huge number of keys. This method may lock the dictionary for quite a while and block all the nginx worker processes that are trying to access the dictionary.
 
-This feature was first introduced in the `v0.7.3` release.
+[Back to TOC](#nginx-shared-dict-api-for-lua)
+
+expire
+------------------------
+**syntax:** *keys = dict:expire(key, exptime)*
+
+**context:** *init_by_lua&#42;, set_by_lua&#42;, rewrite_by_lua&#42;, access_by_lua&#42;, content_by_lua&#42;, header_filter_by_lua&#42;, body_filter_by_lua&#42;, log_by_lua&#42;, ngx.timer.&#42;, balancer_by_lua&#42;, ssl_certificate_by_lua&#42;, ssl_session_fetch_by_lua&#42;, ssl_session_store_by_lua&#42;*
+
+Change the expiration time set by [set](#set), only for key-value pair. The time resolution is `0.001` seconds. If the `exptime` takes the value `0` , then the item will never expire.
+
+`1` means expire `key` successfully, if `key` does not exist or `key` is expired, it will return `0`. When the `key` already takes a value that is not a list, it will return `nil` and `"value not a list"`.
+
+[Back to TOC](#nginx-shared-dict-api-for-lua)
+
+ttl
+------------------------
+**syntax:** *keys = dict:ttl(key)*
+
+**context:** *init_by_lua&#42;, set_by_lua&#42;, rewrite_by_lua&#42;, access_by_lua&#42;, content_by_lua&#42;, header_filter_by_lua&#42;, body_filter_by_lua&#42;, log_by_lua&#42;, ngx.timer.&#42;, balancer_by_lua&#42;, ssl_certificate_by_lua&#42;, ssl_session_fetch_by_lua&#42;, ssl_session_store_by_lua&#42;*
+
+Get the expiration time which set by [set](#set) or [expire](#expire).
+
+If `key` does not exist, it will return `-1` and if `key` is expired, it will return `-2`. When the `key` already takes a value that is not a list, it will return `nil` and `"value not a list"`.
 
 [Back to TOC](#nginx-shared-dict-api-for-lua)
