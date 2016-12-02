@@ -584,9 +584,9 @@ local function shdict_get_keys(zone, attempts)
     local rc = C.ngx_lua_ffi_shdict_get_keys(meta_zone, attempts, keys_buf,
         keys_num, errmsg)
     if rc ~= 0 then
-        return error("failed to get the keys")
+        return nil, ffi_str(errmsg)
     end
-    
+
     local keys = {}
     local num = tonumber(keys_num[0])
 
@@ -596,7 +596,7 @@ local function shdict_get_keys(zone, attempts)
         end
         C.free(keys_buf[0])
     end
-    
+
     return keys
 end
 

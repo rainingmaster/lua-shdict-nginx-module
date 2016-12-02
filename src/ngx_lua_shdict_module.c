@@ -1376,11 +1376,14 @@ ngx_lua_ffi_shdict_get_keys(ngx_shm_zone_t *zone, int attempts,
 
     *keys_num = total;
     keys = malloc(total * sizeof(ngx_str_t));
+
     if (keys == NULL) {
         ngx_shmtx_unlock(&ctx->shpool->mutex);
-        *errmsg = 'no memory';
+
+        *errmsg = "no memory";
         return NGX_ERROR;
     }
+
     *keys_buf = keys;
 
     /* second run through: add keys to table */
