@@ -1,16 +1,17 @@
-ngx_addon_name=ngx_lua_shdict_module
-NGX_LUA_SHDICT_SRCS="$ngx_addon_dir/src/ngx_lua_shdict_module.c"
 
-if test -n "$ngx_module_link"; then
-    ngx_module_type=HTTP
-    ngx_module_name=$ngx_addon_name
-    ngx_module_srcs="$NGX_LUA_SHDICT_SRCS"
+ngx_addon_name="ngx_lua_shdict_module"
 
-    . auto/module
-else
-    HTTP_MODULES="$HTTP_MODULES $ngx_addon_name"
-    NGX_ADDON_SRCS="$NGX_ADDON_SRCS $NGX_LUA_SHDICT_SRCS"
+NGX_LUA_SHDICT_SRCS="$ngx_addon_dir/src/ngx_lua_shdict_util.c \
+                     $ngx_addon_dir/src/ngx_http_lua_shdict_module.c \
+                     $ngx_addon_dir/src/ngx_stream_lua_shdict_module.c \
+                     "
 
-    CORE_INCS="$CORE_INCS $ngx_module_incs"
-    CORE_LIBS="$CORE_LIBS $ngx_module_libs"
-fi
+NGX_LUA_SHDICT_DEPS="$ngx_addon_dir/src/ngx_lua_shdict_common.h"
+
+
+HTTP_MODULES="$HTTP_MODULES $ngx_addon_name"
+NGX_ADDON_SRCS="$NGX_ADDON_SRCS $NGX_LUA_SHDICT_SRCS"
+NGX_ADDON_DEPS="$NGX_ADDON_DEPS $NGX_LUA_SHDICT_DEPS"
+
+CORE_INCS="$CORE_INCS $ngx_module_incs"
+CORE_LIBS="$CORE_LIBS $ngx_module_libs"
