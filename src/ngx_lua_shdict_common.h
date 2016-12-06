@@ -87,13 +87,14 @@ enum {
 };
 
 
+typedef ngx_shm_zone_t* (*ngx_shm_add_pt) \
+                        (ngx_conf_t *cf, ngx_str_t *name, size_t size, void *tag);
+
+
 typedef struct {
+    ngx_shm_add_pt   shared_memory_add;
     ngx_array_t     *shdict_zones;
 } ngx_lua_shdict_main_conf_t;
-
-
-typedef ngx_shm_zone_t* (*ngx_shared_memory_add_pt) \
-                        (ngx_conf_t *cf, ngx_str_t *name, size_t size, void *tag);
 
 
 static void *ngx_lua_shdict_create_common_main_conf(ngx_conf_t *cf);

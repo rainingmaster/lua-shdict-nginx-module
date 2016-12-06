@@ -1,5 +1,5 @@
 
-ngx_addon_name="ngx_lua_shdict_module"
+ngx_addon_name="ngx_http_lua_shdict_module ngx_stream_lua_shdict_module"
 
 NGX_LUA_SHDICT_SRCS="$ngx_addon_dir/src/ngx_lua_shdict_util.c \
                      $ngx_addon_dir/src/ngx_http_lua_shdict_module.c \
