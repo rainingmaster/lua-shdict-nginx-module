@@ -92,6 +92,7 @@ static char *ngx_lua_shdict(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
 
 typedef struct {
+    void            *ctx;
     ngx_shm_add_pt   shared_memory_add;
     ngx_array_t     *shdict_zones;
 } ngx_lua_shdict_conf_t;
@@ -367,6 +368,52 @@ ngx_lua_shdict_expire(ngx_lua_shdict_ctx_t *ctx, ngx_uint_t n)
 }
 
 
+char *ngx_lua_shdict_conf_init(ngx_conf_t *cf,
+    ngx_lua_shdict_conf_t **lscfp)
+{
+    ngx_lua_shdict_conf_t *lscf;
+
+    lscf = ngx_pcalloc(cf->pool, sizeof(ngx_lua_shdict_conf_t));
+    if (lscf == NULL) {
+        return NGX_CONF_ERROR;
+    }
+
+    /* set by ngx_pcalloc:
+     *      lscf->ctx = NULL;
+     *      lscf->shared_memory_add = NULL;
+     *      lscf->shdict_zones = NULL;
+     */
+
+    cf->cycle->conf_ctx[ngx_lua_shdict_module.index] = lscf;
+
+    if (NGX_HTTP_MODULE == cf->module_type) {
+        /* http first */
+        lscf->shared_memory_add = ngx_http_lua_shared_memory_add;
+
+    } else { /* stream */
+        lscf->shared_memory_add = ngx_stream_lua_shared_memory_add;
+
+    }
+
+    lscf->shdict_zones = ngx_palloc(cf->pool, sizeof(ngx_array_t));
+    if (lscf->shdict_zones == NULL) {
+        return NGX_CONF_ERROR;
+    }
+
+    if (ngx_array_init(lscf->shdict_zones, cf->pool, 2,
+                       sizeof(ngx_shm_zone_t *))
+        != NGX_OK)
+    {
+        return NGX_CONF_ERROR;
+    }
+    
+    lscf->ctx = cf->ctx;
+
+    *lscfp = lscf;
+    return NGX_CONF_OK;
+}
+
+
 static char *
 ngx_lua_shdict(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
@@ -376,6 +423,7 @@ ngx_lua_shdict(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_shm_zone_t              **zp;
     ngx_lua_shdict_ctx_t         *ctx;
     ssize_t                       size;
+    void                         *old_ctx;
 
     if (cf->module_type != NGX_HTTP_MODULE &&
         cf->module_type != NGX_STREAM_MODULE) {
@@ -383,44 +431,9 @@ ngx_lua_shdict(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     }
 
     lscf = (ngx_lua_shdict_conf_t *)cf->cycle->conf_ctx[ngx_lua_shdict_module.index];
-    if (lscf == NULL) {
-        lscf = ngx_pcalloc(cf->pool, sizeof(*lscf));
-        if (lscf == NULL) {
-            return NGX_CONF_ERROR;
-        }
-
-        /* set by ngx_pcalloc:
-         *      lscf->shared_memory_add = NULL;
-         *      lscf->shdict_zones = NULL;
-         */
-
-        cf->cycle->conf_ctx[ngx_lua_shdict_module.index] = lscf;
-    }
-
-    if (lscf->shared_memory_add == NULL) {
-
-        if (NGX_HTTP_MODULE == cf->module_type) {
-            /* http first */
-            lscf->shared_memory_add = ngx_http_lua_shared_memory_add;
-
-        } else { /* stream */
-            lscf->shared_memory_add = ngx_stream_lua_shared_memory_add;
-
-        }
-    }
-
-    if (lscf->shdict_zones == NULL) {
-        lscf->shdict_zones = ngx_palloc(cf->pool, sizeof(ngx_array_t));
-        if (lscf->shdict_zones == NULL) {
-            return NGX_CONF_ERROR;
-        }
-
-        if (ngx_array_init(lscf->shdict_zones, cf->pool, 2,
-                           sizeof(ngx_shm_zone_t *))
-            != NGX_OK)
-        {
-            return NGX_CONF_ERROR;
-        }
+    if (lscf == NULL &&
+        NGX_CONF_OK != ngx_lua_shdict_conf_init(cf, &lscf)) {
+        return NGX_CONF_ERROR;
     }
 
     value = cf->args->elts;
@@ -451,8 +464,14 @@ ngx_lua_shdict(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ctx->name = name;
     ctx->log = &cf->cycle->new_log;
 
+    old_ctx = cf->ctx;
+    cf->ctx = lscf->ctx;
+
     zone = lscf->shared_memory_add(cf, &name, (size_t) size,
                                     &ngx_lua_shdict_module);
+
+    cf->ctx = old_ctx;
+
     if (zone == NULL) {
         return NGX_CONF_ERROR;
     }
