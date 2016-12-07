@@ -384,7 +384,7 @@ char *ngx_lua_shdict_conf_init(ngx_conf_t *cf,
      *      lscf->shdict_zones = NULL;
      */
 
-    cf->cycle->conf_ctx[ngx_lua_shdict_module.index] = lscf;
+    cf->cycle->conf_ctx[ngx_lua_shdict_module.index] = (void ***) lscf;
 
     if (NGX_HTTP_MODULE == cf->module_type) {
         /* http first */
