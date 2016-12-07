@@ -87,7 +87,6 @@ typedef ngx_shm_zone_t* (*ngx_shm_add_pt) \
                         (ngx_conf_t *cf, ngx_str_t *name, size_t size, void *tag);
 
 
-static void *ngx_lua_shdict_create_main_conf(ngx_conf_t *cf);
 static char *ngx_lua_shdict(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
 
