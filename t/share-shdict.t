@@ -8,12 +8,9 @@ repeat_each(2);
 
 plan tests => repeat_each() * (blocks() * 3);
 
-#my $pwd = cwd();
+my $pwd = cwd();
 
-#our $StreamConfig = qq{
-#    lua_package_path "$pwd/t/lib/?.lua;$pwd/lib/?.lua;;";
-#    lua_shared_mem dict 900k;
-#};
+$ENV{TEST_NGINX_LUA_PACK_PATH} ||= "$pwd/t/lib/?.lua;$pwd/lib/?.lua;;";
 
 no_long_string();
 run_tests();
@@ -22,7 +19,7 @@ __DATA__
 
 === TEST 1: set in stream & get in http
 --- http_config
-    lua_package_path "$pwd/t/lib/?.lua;$pwd/lib/?.lua;;";
+    lua_package_path "$TEST_NGINX_LUA_PACK_PATH";
     server {
         listen 1986;
         location = / {
@@ -40,7 +37,7 @@ __DATA__
         }
     }
 --- stream_config
-    lua_package_path "$pwd/t/lib/?.lua;$pwd/lib/?.lua;;";
+    lua_package_path "$TEST_NGINX_LUA_PACK_PATH";
     lua_shared_mem dict 900k;
 --- stream_server_config
     content_by_lua_block {
@@ -80,7 +77,7 @@ get success
 
 === TEST 2: set in http & get in stream
 --- stream_config
-    lua_package_path "$pwd/t/lib/?.lua;$pwd/lib/?.lua;;";
+    lua_package_path "$TEST_NGINX_LUA_PACK_PATH";
     server {
         listen 1986;
         content_by_lua_block {
@@ -100,7 +97,7 @@ get success
         return
     }
 --- http_config
-    lua_package_path "$pwd/t/lib/?.lua;$pwd/lib/?.lua;;";
+    lua_package_path "$TEST_NGINX_LUA_PACK_PATH";
     lua_shared_mem dict 900k;
 --- config
     location = / {
