@@ -40,12 +40,12 @@ __DATA__
         local function check_key(key)
         local res, err = cats:get(key)
         if res then
-            ngx.say("found ", key, ": ", #res)
+                ngx.say("found ", key, ": ", #res)
         else
             if not err then
-            ngx.say(key, " not found")
+                ngx.say(key, " not found")
             else
-            ngx.say("failed to fetch key: ", err)
+                ngx.say("failed to fetch key: ", err)
             end
         end
         end
@@ -55,9 +55,9 @@ __DATA__
         if ok then
             ngx.print("successfully set ", key)
             if force then
-            ngx.say(" with force.")
+                ngx.say(" with force.")
             else
-            ngx.say(".")
+                ngx.say(".")
             end
         else
             ngx.say("failed to set ", key, ": ", err)
@@ -65,13 +65,13 @@ __DATA__
         end
 
         for i = 1, 2 do
-        set_key("foo", string.rep("a", 4000))
-        set_key("bar", string.rep("b", 4001))
-        set_key("baz", string.rep("c", 8102))
+            set_key("foo", string.rep("a", 4000))
+            set_key("bar", string.rep("b", 4001))
+            set_key("baz", string.rep("c", 8102))
 
-        check_key("foo")
-        check_key("bar")
-        check_key("baz")
+            check_key("foo")
+            check_key("bar")
+            check_key("baz")
         end
 
         collectgarbage()
@@ -90,28 +90,28 @@ F(ngx_http_lua_shdict_init_zone).return {
 
 F(ngx_slab_alloc_pages) {
     if (first_time) {
-    printf("total pages: %d\n", $pool->pages->slab)
-    first_time = 0
+        printf("total pages: %d\n", $pool->pages->slab)
+        first_time = 0
     }
     if (active) {
-    printf("alloc pages: %d", $pages)
-    //print_ubacktrace()
+        printf("alloc pages: %d", $pages)
+        //print_ubacktrace()
     } else {
-    printf("init zone alloc pages: %d", $pages)
+        printf("init zone alloc pages: %d", $pages)
     }
 }
 
 F(ngx_slab_alloc_pages).return {
     if ($return) {
-    printf(" ok\n")
+        printf(" ok\n")
 
     } else {
-    printf(" NOT OK\n")
+        printf(" NOT OK\n")
     }
 }
 
 F(ngx_slab_free_pages) {
-    printf("free pages: %d\n", $pages)
+        printf("free pages: %d\n", $pages)
 }
 
 --- stap_out
@@ -164,12 +164,12 @@ found baz: 8102
         local function check_key(key)
         local res, err = cats:get(key)
         if res then
-            ngx.say("found ", key, ": ", #res)
+                ngx.say("found ", key, ": ", #res)
         else
             if not err then
-            ngx.say(key, " not found")
+                ngx.say(key, " not found")
             else
-            ngx.say("failed to fetch key: ", err)
+                ngx.say("failed to fetch key: ", err)
             end
         end
         end
@@ -179,24 +179,24 @@ found baz: 8102
         if ok then
             ngx.print("successfully set ", key)
             if force then
-            ngx.say(" with force.")
+                ngx.say(" with force.")
             else
-            ngx.say(".")
+                ngx.say(".")
             end
         else
-            ngx.say("failed to set ", key, ": ", err)
+                ngx.say("failed to set ", key, ": ", err)
         end
         end
 
         for i = 1, 2 do
-        set_key("foo", string.rep("a", 4000))
-        set_key("bar", string.rep("b", 4001))
-        check_key("foo")
-        set_key("baz", string.rep("c", 8102))
+            set_key("foo", string.rep("a", 4000))
+            set_key("bar", string.rep("b", 4001))
+            check_key("foo")
+            set_key("baz", string.rep("c", 8102))
 
-        check_key("foo")
-        check_key("bar")
-        check_key("baz")
+            check_key("foo")
+            check_key("bar")
+            check_key("baz")
         end
 
         collectgarbage()
@@ -215,28 +215,28 @@ F(ngx_http_lua_shdict_init_zone).return {
 
 F(ngx_slab_alloc_pages) {
     if (first_time) {
-    printf("total pages: %d\n", $pool->pages->slab)
+        printf("total pages: %d\n", $pool->pages->slab)
     first_time = 0
     }
     if (active) {
-    printf("alloc pages: %d", $pages)
-    //print_ubacktrace()
+        printf("alloc pages: %d", $pages)
+        //print_ubacktrace()
     } else {
-    printf("init zone alloc pages: %d", $pages)
+        printf("init zone alloc pages: %d", $pages)
     }
 }
 
 F(ngx_slab_alloc_pages).return {
     if ($return) {
-    printf(" ok\n")
+        printf(" ok\n")
 
     } else {
-    printf(" NOT OK\n")
+        printf(" NOT OK\n")
     }
 }
 
 F(ngx_slab_free_pages) {
-    printf("free pages: %d\n", $pages)
+        printf("free pages: %d\n", $pages)
 }
 
 --- stap_out
@@ -291,12 +291,12 @@ found baz: 8102
         local function check_key(key)
         local res, err = cats:get(key)
         if res then
-            ngx.say("found ", key, ": ", #res)
+                ngx.say("found ", key, ": ", #res)
         else
             if not err then
-            ngx.say(key, " not found")
+                ngx.say(key, " not found")
             else
-            ngx.say("failed to fetch key: ", err)
+                ngx.say("failed to fetch key: ", err)
             end
         end
         end
@@ -306,9 +306,9 @@ found baz: 8102
         if ok then
             ngx.print("successfully set ", key)
             if force then
-            ngx.say(" with force.")
+                ngx.say(" with force.")
             else
-            ngx.say(".")
+                ngx.say(".")
             end
         else
             ngx.say("failed to set ", key, ": ", err)
@@ -325,20 +325,20 @@ found baz: 8102
         end
 
         for i = 1, 2 do
-        set_key("foo", string.rep("a", 4000))
-        set_key("bar", string.rep("b", 4001))
-        set_key("baz", string.rep("c", 4002))
+            set_key("foo", string.rep("a", 4000))
+            set_key("bar", string.rep("b", 4001))
+            set_key("baz", string.rep("c", 4002))
 
-        check_key("foo")
-        check_key("bar")
-        check_key("baz")
+            check_key("foo")
+            check_key("bar")
+            check_key("baz")
 
-        cats:delete("foo")
-        safe_set_key("blah", string.rep("a", 8100))
-        cats:delete("baz")
-        safe_set_key("blah", string.rep("a", 8100))
-        cats:delete("bar")
-        safe_set_key("blah", string.rep("a", 12010))
+            cats:delete("foo")
+            safe_set_key("blah", string.rep("a", 8100))
+            cats:delete("baz")
+            safe_set_key("blah", string.rep("a", 8100))
+            cats:delete("bar")
+            safe_set_key("blah", string.rep("a", 12010))
         end
 
         collectgarbage()
@@ -357,28 +357,28 @@ F(ngx_http_lua_shdict_init_zone).return {
 
 F(ngx_slab_alloc_pages) {
     if (first_time) {
-    printf("total pages: %d\n", $pool->pages->slab)
+        printf("total pages: %d\n", $pool->pages->slab)
     first_time = 0
     }
     if (active) {
-    printf("alloc pages: %d", $pages)
-    //print_ubacktrace()
+        printf("alloc pages: %d", $pages)
+        //print_ubacktrace()
     } else {
-    printf("init zone alloc pages: %d", $pages)
+        printf("init zone alloc pages: %d", $pages)
     }
 }
 
 F(ngx_slab_alloc_pages).return {
     if ($return) {
-    printf(" ok\n")
+        printf(" ok\n")
 
     } else {
-    printf(" NOT OK\n")
+        printf(" NOT OK\n")
     }
 }
 
 F(ngx_slab_free_pages) {
-    printf("free pages: %d\n", $pages)
+        printf("free pages: %d\n", $pages)
 }
 
 --- stap_out
@@ -441,12 +441,12 @@ successfully safe set blah
         local function check_key(key)
         local res, err = cats:get(key)
         if res then
-            ngx.say("found ", key, ": ", #res)
+                ngx.say("found ", key, ": ", #res)
         else
             if not err then
-            ngx.say(key, " not found")
+                ngx.say(key, " not found")
             else
-            ngx.say("failed to fetch key: ", err)
+                ngx.say("failed to fetch key: ", err)
             end
         end
         end
@@ -456,12 +456,12 @@ successfully safe set blah
         if ok then
             ngx.print("successfully set ", key)
             if force then
-            ngx.say(" with force.")
+                ngx.say(" with force.")
             else
-            ngx.say(".")
+                ngx.say(".")
             end
         else
-            ngx.say("failed to set ", key, ": ", err)
+                ngx.say("failed to set ", key, ": ", err)
         end
         end
 
@@ -475,21 +475,21 @@ successfully safe set blah
         end
 
         for i = 1, 1 do
-        set_key("foo", string.rep("a", 4000))
-        set_key("bar", string.rep("b", 4001))
-        set_key("baz", string.rep("c", 4002))
+            set_key("foo", string.rep("a", 4000))
+            set_key("bar", string.rep("b", 4001))
+            set_key("baz", string.rep("c", 4002))
 
-        check_key("foo")
-        check_key("bar")
-        check_key("baz")
+            check_key("foo")
+            check_key("bar")
+            check_key("baz")
 
-        cats:delete("bar")
-        safe_set_key("blah", string.rep("a", 8100))
-        cats:delete("baz")
-        safe_set_key("blah", string.rep("a", 8100))
-        check_key("foo")
-        cats:delete("foo")
-        check_key("blah")
+            cats:delete("bar")
+            safe_set_key("blah", string.rep("a", 8100))
+            cats:delete("baz")
+            safe_set_key("blah", string.rep("a", 8100))
+            check_key("foo")
+            cats:delete("foo")
+            check_key("blah")
         end
 
         collectgarbage()
@@ -508,28 +508,28 @@ F(ngx_http_lua_shdict_init_zone).return {
 
 F(ngx_slab_alloc_pages) {
     if (first_time) {
-    printf("total pages: %d\n", $pool->pages->slab)
-    first_time = 0
+        printf("total pages: %d\n", $pool->pages->slab)
+        first_time = 0
     }
     if (active) {
-    printf("alloc pages: %d", $pages)
-    //print_ubacktrace()
+        printf("alloc pages: %d", $pages)
+        //print_ubacktrace()
     } else {
-    printf("init zone alloc pages: %d", $pages)
+        printf("init zone alloc pages: %d", $pages)
     }
 }
 
 F(ngx_slab_alloc_pages).return {
     if ($return) {
-    printf(" ok\n")
+        printf(" ok\n")
 
     } else {
-    printf(" NOT OK\n")
+        printf(" NOT OK\n")
     }
 }
 
 F(ngx_slab_free_pages) {
-    printf("free pages: %d\n", $pages)
+        printf("free pages: %d\n", $pages)
 }
 
 --- stap_out
@@ -575,9 +575,9 @@ found blah: 8100
             ngx.say("found ", key, ": ", #res)
         else
             if not err then
-            ngx.say(key, " not found")
+                ngx.say(key, " not found")
             else
-            ngx.say("failed to fetch key: ", err)
+                ngx.say("failed to fetch key: ", err)
             end
         end
         end
@@ -587,9 +587,9 @@ found blah: 8100
         if ok then
             ngx.print("successfully set ", key)
             if force then
-            ngx.say(" with force.")
+                ngx.say(" with force.")
             else
-            ngx.say(".")
+                ngx.say(".")
             end
         else
             ngx.say("failed to set ", key, ": ", err)
@@ -606,21 +606,21 @@ found blah: 8100
         end
 
         for i = 1, 1 do
-        set_key("foo", string.rep("a", 4000))
-        set_key("bar", string.rep("b", 4001))
-        set_key("baz", string.rep("c", 4002))
+            set_key("foo", string.rep("a", 4000))
+            set_key("bar", string.rep("b", 4001))
+            set_key("baz", string.rep("c", 4002))
 
-        check_key("foo")
-        check_key("bar")
-        check_key("baz")
+            check_key("foo")
+            check_key("bar")
+            check_key("baz")
 
-        cats:delete("bar")
-        safe_set_key("blah", string.rep("a", 8100))
-        cats:delete("foo")
-        safe_set_key("blah", string.rep("a", 8100))
-        check_key("baz")
-        cats:delete("baz")
-        check_key("blah")
+            cats:delete("bar")
+            safe_set_key("blah", string.rep("a", 8100))
+            cats:delete("foo")
+            safe_set_key("blah", string.rep("a", 8100))
+            check_key("baz")
+            cats:delete("baz")
+            check_key("blah")
         end
 
         collectgarbage()
@@ -639,28 +639,28 @@ F(ngx_http_lua_shdict_init_zone).return {
 
 F(ngx_slab_alloc_pages) {
     if (first_time) {
-    printf("total pages: %d\n", $pool->pages->slab)
+        printf("total pages: %d\n", $pool->pages->slab)
     first_time = 0
     }
     if (active) {
-    printf("alloc pages: %d", $pages)
-    //print_ubacktrace()
+        printf("alloc pages: %d", $pages)
+        //print_ubacktrace()
     } else {
-    printf("init zone alloc pages: %d", $pages)
+        printf("init zone alloc pages: %d", $pages)
     }
 }
 
 F(ngx_slab_alloc_pages).return {
     if ($return) {
-    printf(" ok\n")
+        printf(" ok\n")
 
     } else {
-    printf(" NOT OK\n")
+        printf(" NOT OK\n")
     }
 }
 
 F(ngx_slab_free_pages) {
-    printf("free pages: %d\n", $pages)
+        printf("free pages: %d\n", $pages)
 }
 
 --- stap_out
@@ -703,12 +703,12 @@ found blah: 8100
         local function check_key(key)
         local res, err = dogs:get(key)
         if res then
-            ngx.say("found ", key, ": ", #res)
+                ngx.say("found ", key, ": ", #res)
         else
             if not err then
-            ngx.say(key, " not found")
+                ngx.say(key, " not found")
             else
-            ngx.say("failed to fetch key: ", err)
+                ngx.say("failed to fetch key: ", err)
             end
         end
         end
@@ -718,9 +718,9 @@ found blah: 8100
         if ok then
             ngx.print("successfully set ", key)
             if force then
-            ngx.say(" with force.")
+                ngx.say(" with force.")
             else
-            ngx.say(".")
+                ngx.say(".")
             end
         else
             ngx.say("failed to set ", key, ": ", err)
@@ -737,18 +737,18 @@ found blah: 8100
         end
 
         for i = 1, 1 do
-        set_key("foo", string.rep("a", 8100))
-        set_key("bar", string.rep("b", 8101))
-        check_key("foo")
-        safe_set_key("baz", string.rep("c", 16300))
-        dogs:delete("foo")
-        check_key("bar")
-        dogs:delete("bar")
-        safe_set_key("baz", string.rep("c", 16300))
+            set_key("foo", string.rep("a", 8100))
+            set_key("bar", string.rep("b", 8101))
+            check_key("foo")
+            safe_set_key("baz", string.rep("c", 16300))
+            dogs:delete("foo")
+            check_key("bar")
+            dogs:delete("bar")
+            safe_set_key("baz", string.rep("c", 16300))
 
-        check_key("foo")
-        check_key("bar")
-        check_key("baz")
+            check_key("foo")
+            check_key("bar")
+            check_key("baz")
         end
 
         collectgarbage()
@@ -767,28 +767,28 @@ F(ngx_http_lua_shdict_init_zone).return {
 
 F(ngx_slab_alloc_pages) {
     if (first_time) {
-    printf("total pages: %d\n", $pool->pages->slab)
+        printf("total pages: %d\n", $pool->pages->slab)
     first_time = 0
     }
     if (active) {
-    printf("alloc pages: %d", $pages)
-    //print_ubacktrace()
+        printf("alloc pages: %d", $pages)
+        //print_ubacktrace()
     } else {
-    printf("init zone alloc pages: %d", $pages)
+        printf("init zone alloc pages: %d", $pages)
     }
 }
 
 F(ngx_slab_alloc_pages).return {
     if ($return) {
-    printf(" ok\n")
+        printf(" ok\n")
 
     } else {
-    printf(" NOT OK\n")
+        printf(" NOT OK\n")
     }
 }
 
 F(ngx_slab_free_pages) {
-    printf("free pages: %d\n", $pages)
+        printf("free pages: %d\n", $pages)
 }
 
 --- stap_out
@@ -831,9 +831,9 @@ found baz: 16300
             ngx.say("found ", key, ": ", #res)
         else
             if not err then
-            ngx.say(key, " not found")
+                ngx.say(key, " not found")
             else
-            ngx.say("failed to fetch key: ", err)
+                ngx.say("failed to fetch key: ", err)
             end
         end
         end
@@ -843,9 +843,9 @@ found baz: 16300
         if ok then
             ngx.print("successfully set ", key)
             if force then
-            ngx.say(" with force.")
+                ngx.say(" with force.")
             else
-            ngx.say(".")
+                ngx.say(".")
             end
         else
             ngx.say("failed to set ", key, ": ", err)
@@ -862,22 +862,22 @@ found baz: 16300
         end
 
         for i = 1, 1 do
-        for j = 1, 50 do
-            cats:set("foo" .. j, string.rep("a", 5))
-        end
-        set_key("bar", string.rep("a", 4000))
+            for j = 1, 50 do
+                cats:set("foo" .. j, string.rep("a", 5))
+            end
+            set_key("bar", string.rep("a", 4000))
 
-        for j = 1, 50 do
-            cats:delete("foo" .. j)
-        end
+            for j = 1, 50 do
+                cats:delete("foo" .. j)
+            end
 
-        safe_set_key("baz", string.rep("b", 8100))
-        check_key("bar")
+            safe_set_key("baz", string.rep("b", 8100))
+            check_key("bar")
 
-        ngx.say("delete bar")
-        cats:delete("bar")
+            ngx.say("delete bar")
+            cats:delete("bar")
 
-        safe_set_key("baz", string.rep("b", 8100))
+            safe_set_key("baz", string.rep("b", 8100))
         end
 
         collectgarbage()
@@ -896,29 +896,29 @@ F(ngx_http_lua_shdict_init_zone).return {
 
 F(ngx_slab_alloc_pages) {
     if (first_time) {
-    //printf("slab max size: %d\n", @var("ngx_slab_max_size"))
-    printf("total pages: %d\n", $pool->pages->slab)
+        //printf("slab max size: %d\n", @var("ngx_slab_max_size"))
+        printf("total pages: %d\n", $pool->pages->slab)
     first_time = 0
     }
     if (active) {
-    printf("alloc pages: %d", $pages)
-    //print_ubacktrace()
+        printf("alloc pages: %d", $pages)
+        //print_ubacktrace()
     } else {
-    printf("init zone alloc pages: %d", $pages)
+        printf("init zone alloc pages: %d", $pages)
     }
 }
 
 F(ngx_slab_alloc_pages).return {
     if ($return) {
-    printf(" ok\n")
+        printf(" ok\n")
 
     } else {
-    printf(" NOT OK\n")
+        printf(" NOT OK\n")
     }
 }
 
 F(ngx_slab_free_pages) {
-    printf("free pages: %d\n", $pages)
+        printf("free pages: %d\n", $pages)
 }
 
 --- stap_out
@@ -954,12 +954,12 @@ successfully safe set baz
         local function check_key(key)
         local res, err = cats:get(key)
         if res then
-            ngx.say("found ", key, ": ", #res)
+                ngx.say("found ", key, ": ", #res)
         else
             if not err then
-            ngx.say(key, " not found")
+                ngx.say(key, " not found")
             else
-            ngx.say("failed to fetch key: ", err)
+                ngx.say("failed to fetch key: ", err)
             end
         end
         end
@@ -969,12 +969,12 @@ successfully safe set baz
         if ok then
             ngx.print("successfully set ", key)
             if force then
-            ngx.say(" with force.")
+                ngx.say(" with force.")
             else
-            ngx.say(".")
+                ngx.say(".")
             end
         else
-            ngx.say("failed to set ", key, ": ", err)
+                ngx.say("failed to set ", key, ": ", err)
         end
         end
 
@@ -988,24 +988,24 @@ successfully safe set baz
         end
 
         for i = 1, 1 do
-        for j = 1, 63 do
-            cats:set("foo" .. j, string.rep("a", 5))
-        end
-        set_key("bar", string.rep("a", 4000))
+            for j = 1, 63 do
+                cats:set("foo" .. j, string.rep("a", 5))
+            end
+            set_key("bar", string.rep("a", 4000))
 
-        --[[
-        for j = 1, 50 do
-            cats:delete("foo" .. j)
-        end
-        ]]
+            --[[
+            for j = 1, 50 do
+                cats:delete("foo" .. j)
+            end
+            ]]
 
-        safe_set_key("baz", string.rep("b", 8100))
-        check_key("bar")
+            safe_set_key("baz", string.rep("b", 8100))
+            check_key("bar")
 
-        ngx.say("delete bar")
-        cats:delete("bar")
+            ngx.say("delete bar")
+            cats:delete("bar")
 
-        safe_set_key("baz", string.rep("b", 8100))
+            safe_set_key("baz", string.rep("b", 8100))
         end
 
         collectgarbage()
@@ -1024,29 +1024,29 @@ F(ngx_http_lua_shdict_init_zone).return {
 
 F(ngx_slab_alloc_pages) {
     if (first_time) {
-    //printf("slab max size: %d\n", @var("ngx_slab_max_size"))
-    printf("total pages: %d\n", $pool->pages->slab)
+        //printf("slab max size: %d\n", @var("ngx_slab_max_size"))
+        printf("total pages: %d\n", $pool->pages->slab)
     first_time = 0
     }
     if (active) {
-    printf("alloc pages: %d", $pages)
-    //print_ubacktrace()
+        printf("alloc pages: %d", $pages)
+        //print_ubacktrace()
     } else {
-    printf("init zone alloc pages: %d", $pages)
+        printf("init zone alloc pages: %d", $pages)
     }
 }
 
 F(ngx_slab_alloc_pages).return {
     if ($return) {
-    printf(" ok\n")
+        printf(" ok\n")
 
     } else {
-    printf(" NOT OK\n")
+        printf(" NOT OK\n")
     }
 }
 
 F(ngx_slab_free_pages) {
-    printf("free pages: %d\n", $pages)
+        printf("free pages: %d\n", $pages)
 }
 
 --- stap_out
@@ -1084,9 +1084,9 @@ failed to safe set baz: no memory
             ngx.say("found ", key, ": ", #res)
         else
             if not err then
-            ngx.say(key, " not found")
+                ngx.say(key, " not found")
             else
-            ngx.say("failed to fetch key: ", err)
+                ngx.say("failed to fetch key: ", err)
             end
         end
         end
@@ -1096,9 +1096,9 @@ failed to safe set baz: no memory
         if ok then
             ngx.print("successfully set ", key)
             if force then
-            ngx.say(" with force.")
+                ngx.say(" with force.")
             else
-            ngx.say(".")
+                ngx.say(".")
             end
         else
             ngx.say("failed to set ", key, ": ", err)
@@ -1115,24 +1115,24 @@ failed to safe set baz: no memory
         end
 
         for i = 1, 1 do
-        set_key("bar", string.rep("a", 4000))
-        for j = 1, 50 do
-            cats:set("foo" .. j, string.rep("a", 5))
-        end
+            set_key("bar", string.rep("a", 4000))
+            for j = 1, 50 do
+                cats:set("foo" .. j, string.rep("a", 5))
+            end
 
-        --[[
-        for j = 1, 50 do
-            cats:delete("foo" .. j)
-        end
-        ]]
+            --[[
+            for j = 1, 50 do
+                cats:delete("foo" .. j)
+            end
+            ]]
 
-        safe_set_key("baz", string.rep("b", 8100))
-        check_key("bar")
+            safe_set_key("baz", string.rep("b", 8100))
+            check_key("bar")
 
-        ngx.say("delete bar")
-        cats:delete("bar")
+            ngx.say("delete bar")
+            cats:delete("bar")
 
-        safe_set_key("baz", string.rep("b", 8100))
+            safe_set_key("baz", string.rep("b", 8100))
         end
 
         collectgarbage()
@@ -1151,24 +1151,24 @@ F(ngx_http_lua_shdict_init_zone).return {
 
 F(ngx_slab_alloc_pages) {
     if (first_time) {
-    //printf("slab max size: %d\n", @var("ngx_slab_max_size"))
-    printf("total pages: %d\n", $pool->pages->slab)
+        //printf("slab max size: %d\n", @var("ngx_slab_max_size"))
+        printf("total pages: %d\n", $pool->pages->slab)
     first_time = 0
     }
     if (active) {
-    printf("alloc pages: %d", $pages)
-    //print_ubacktrace()
+        printf("alloc pages: %d", $pages)
+        //print_ubacktrace()
     } else {
-    printf("init zone alloc pages: %d", $pages)
+        printf("init zone alloc pages: %d", $pages)
     }
 }
 
 F(ngx_slab_alloc_pages).return {
     if ($return) {
-    printf(" ok\n")
+        printf(" ok\n")
 
     } else {
-    printf(" NOT OK\n")
+        printf(" NOT OK\n")
     }
 }
 
@@ -1211,20 +1211,20 @@ failed to safe set baz: no memory
 
         math.randomseed(ngx.time())
         for i = 1, 30000 do
-        local key = "mylittlekey" .. rand(maxkeyidx)
-        local ok, err = kingkong:get(key)
-        if not ok or rand() > 0.6 then
-            sz = rand(maxsz)
-            val = rep("a", sz)
-            local ok, err, forcible = kingkong:set(key, val)
-            if err then
-            ngx.log(ngx.ERR, "failed to set key: ", err)
-            -- return
+            local key = "mylittlekey" .. rand(maxkeyidx)
+            local ok, err = kingkong:get(key)
+            if not ok or rand() > 0.6 then
+                sz = rand(maxsz)
+                val = rep("a", sz)
+                local ok, err, forcible = kingkong:set(key, val)
+                if err then
+                ngx.log(ngx.ERR, "failed to set key: ", err)
+                -- return
+                end
+                if forcible then
+                -- error("forcible")
+                end
             end
-            if forcible then
-            -- error("forcible")
-            end
-        end
         end
         ngx.say("ok")
         collectgarbage()

@@ -41,14 +41,12 @@ __DATA__
             end
 
             local ok, err = dict:expire("foo", 10)
-            if ok then
-                if ok == 0 then
-                    ngx.say("expire key not exist")
-                else
-                    ngx.say("expire success: ", ok)
-                end
-            else
+            if not ok then
                 ngx.say("expire err: ", err)
+            elseif ok == 0 then
+                ngx.say("expire key not exist")
+            else
+                ngx.say("expire success: ", ok)
             end
 
             local val, err = dict:ttl("foo")
@@ -137,14 +135,12 @@ push success
             local ret, err = dict:set("foo", "bar", 100)
 
             local ok, err = dict:expire("foo", -10)
-            if ok then
-                if ok == 0 then
-                    ngx.say("expire key not exist")
-                else
-                    ngx.say("expire success: ", ok)
-                end
-            else
+            if not ok then
                 ngx.say("expire err: ", err)
+            elseif ok == 0 then
+                ngx.say("expire key not exist")
+            else
+                ngx.say("expire success: ", ok)
             end
         }
     }
@@ -167,14 +163,12 @@ bad "exptime" argument
             local ret, err = dict:set("foo", "bar", 100)
 
             local ok, err = dict:expire("foo", "bar")
-            if ok then
-                if ok == 0 then
-                    ngx.say("expire key not exist")
-                else
-                    ngx.say("expire success: ", ok)
-                end
-            else
+            if not ok then
                 ngx.say("expire err: ", err)
+            elseif ok == 0 then
+                ngx.say("expire key not exist")
+            else
+                ngx.say("expire success: ", ok)
             end
         }
     }
@@ -302,14 +296,12 @@ ttl is: -1
             ngx.sleep(0.02)
 
             local ok, err = dict:expire("foo", 10)
-            if ok then
-                if ok == 0 then
-                    ngx.say("expire key not exist")
-                else
-                    ngx.say("expire success: ", ok)
-                end
-            else
+            if not ok then
                 ngx.say("expire err: ", err)
+            elseif ok == 0 then
+                ngx.say("expire key not exist")
+            else
+                ngx.say("expire success: ", ok)
             end
         }
     }
@@ -333,14 +325,12 @@ expire key not exist
             dict:flush_all()
 
             local ok, err = dict:expire("foo", 10)
-            if ok then
-                if ok == 0 then
-                    ngx.say("expire key not exist")
-                else
-                    ngx.say("expire success: ", ok)
-                end
-            else
+            if not ok then
                 ngx.say("expire err: ", err)
+            elseif ok == 0 then
+                ngx.say("expire key not exist")
+            else
+                ngx.say("expire success: ", ok)
             end
         }
     }
@@ -377,14 +367,12 @@ expire key not exist
             end
 
             local ok, err = dict:expire("foo", 10)
-            if ok then
-                if ok == 0 then
-                    ngx.say("expire key not exist")
-                else
-                    ngx.say("expire success: ", ok)
-                end
-            else
+            if not ok then
                 ngx.say("expire err: ", err)
+            elseif ok == 0 then
+                ngx.say("expire key not exist")
+            else
+                ngx.say("expire success: ", ok)
             end
 
             local val, err = dict:ttl("foo")
@@ -431,14 +419,12 @@ ttl is: 10
             end
 
             local ok, err = dict:expire("foo", 0)
-            if ok then
-                if ok == 0 then
-                    ngx.say("expire key not exist")
-                else
-                    ngx.say("expire success: ", ok)
-                end
-            else
+            if not ok then
                 ngx.say("expire err: ", err)
+            elseif ok == 0 then
+                ngx.say("expire key not exist")
+            else
+                ngx.say("expire success: ", ok)
             end
 
             local val, err = dict:ttl("foo")

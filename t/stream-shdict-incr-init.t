@@ -69,7 +69,7 @@ foo = 10503
         local t = require("resty.shdict")
         local dict = t.dict
         for i = 1, 20 do
-        dict:set("bar" .. i, i, 0.001)
+            dict:set("bar" .. i, i, 0.001)
         end
         dict:set("foo", "32", 0.001)
         ngx.sleep(0.002)
@@ -92,7 +92,7 @@ foo = 10502
         local t = require("resty.shdict")
         local dict = t.dict
         for i = 1, 20 do
-        dict:set("bar" .. i, i, 0.001)
+            dict:set("bar" .. i, i, 0.001)
         end
         dict:set("foo", 32, 0.001)
         ngx.sleep(0.002)
@@ -117,11 +117,11 @@ foo = 10502
         dict:flush_all()
         local long_prefix = string.rep("1234567890", 100)
         for i = 1, 1000 do
-        local success, err, forcible = dict:set(long_prefix .. i, i)
-        if forcible then
-            dict:delete(long_prefix .. i)
-            break
-        end
+            local success, err, forcible = dict:set(long_prefix .. i, i)
+            if forcible then
+                dict:delete(long_prefix .. i)
+                break
+            end
         end
         local res, err, forcible = dict:incr(long_prefix .. "bar", 10502, 0)
         ngx.say("incr: ", res, " ", err, " ", forcible)

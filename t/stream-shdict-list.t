@@ -345,21 +345,21 @@ bar nil
         local dict = t.dict
 
         for i = 1, 3 do
-        local len, err = dict:lpush("foo", i)
-        if len ~= i then
-            ngx.say("push err: ", err)
-            break
-        end
+            local len, err = dict:lpush("foo", i)
+            if len ~= i then
+                ngx.say("push err: ", err)
+                break
+            end
         end
 
         for i = 1, 3 do
-        local val, err = dict:lpop("foo")
-        if not val then
-            ngx.say("pop err: ", err)
-            break
-        else
-            ngx.say(val)
-        end
+            local val, err = dict:lpop("foo")
+            if not val then
+                ngx.say("pop err: ", err)
+                break
+            else
+                ngx.say(val)
+            end
         end
     }
 --- stream_response
@@ -379,21 +379,21 @@ bar nil
         local dict = t.dict
 
         for i = 1, 3 do
-        local len, err = dict:lpush("foo", i)
-        if len ~= i then
-            ngx.say("push err: ", err)
-            break
-        end
+            local len, err = dict:lpush("foo", i)
+            if len ~= i then
+                ngx.say("push err: ", err)
+                break
+            end
         end
 
         for i = 1, 3 do
-        local val, err = dict:rpop("foo")
-        if not val then
-            ngx.say("pop err: ", err)
-            break
-        else
-            ngx.say(val)
-        end
+            local val, err = dict:rpop("foo")
+            if not val then
+                ngx.say("pop err: ", err)
+                break
+            else
+                ngx.say(val)
+            end
         end
     }
 --- stream_response
@@ -413,21 +413,21 @@ bar nil
         local dict = t.dict
 
         for i = 1, 3 do
-        local len, err = dict:rpush("foo", i)
-        if len ~= i then
-            ngx.say("push err: ", err)
-            break
-        end
+            local len, err = dict:rpush("foo", i)
+            if len ~= i then
+                ngx.say("push err: ", err)
+                break
+            end
         end
 
         for i = 1, 3 do
-        local val, err = dict:lpop("foo")
-        if not val then
-            ngx.say("pop err: ", err)
-            break
-        else
-            ngx.say(val)
-        end
+            local val, err = dict:lpop("foo")
+            if not val then
+                ngx.say("pop err: ", err)
+                break
+            else
+                ngx.say(val)
+            end
         end
     }
 --- stream_response
@@ -450,13 +450,13 @@ bar nil
         local max = 0
 
         for i = 1, N do
-        local key = string.format("%05d", i)
+            local key = string.format("%05d", i)
 
-        local len , err = dict:lpush(key, i)
-        if not len then
-            max = i
-            break
-        end
+            local len , err = dict:lpush(key, i)
+            if not len then
+                max = i
+                break
+            end
         end
 
         local keys = dict:get_keys(0)
@@ -470,13 +470,13 @@ bar nil
         ngx.say("keys all expired, left number: ", #keys)
 
         for i = 100000, 1, -1 do
-        local key = string.format("%05d", i)
+            local key = string.format("%05d", i)
 
-        local len, err = dict:lpush(key, i)
-        if not len then
-            ngx.say("loop again, max matched: ", N + 1 - i == max)
-            break
-        end
+            local len, err = dict:lpush(key, i)
+            if not len then
+                ngx.say("loop again, max matched: ", N + 1 - i == max)
+                break
+            end
         end
 
         dict:flush_all()
@@ -484,13 +484,13 @@ bar nil
         dict:flush_expired()
 
         for i = 1, N do
-        local key = string.format("%05d", i)
+            local key = string.format("%05d", i)
 
-        local len, err = dict:lpush(key, i)
-        if not len then
-            ngx.say("loop again, max matched: ", i == max)
-            break
-        end
+            local len, err = dict:lpush(key, i)
+            if not len then
+                ngx.say("loop again, max matched: ", i == max)
+                break
+            end
         end
     }
 --- stream_response
@@ -514,11 +514,11 @@ loop again, max matched: true
         local N = 200000
         local max = 0
         for i = 1, N do
-        local ok, err, forcible  = dict:set(i, i)
-        if not ok or forcible then
-            max = i
-            break
-        end
+            local ok, err, forcible  = dict:set(i, i)
+            if not ok or forcible then
+                max = i
+                break
+            end
         end
 
         local two = dict:get(2)
@@ -533,20 +533,20 @@ loop again, max matched: true
         ngx.say("no one left: ", #keys)
 
         for i = 1, N do
-        local key = string.format("%05d", i)
+            local key = string.format("%05d", i)
 
-        local len, err = dict:lpush(key, i)
-        if not len then
-            break
-        end
+            local len, err = dict:lpush(key, i)
+            if not len then
+                break
+            end
         end
 
         for i = 1, max do
-        local ok, err = dict:set(i, i)
-        if not ok then
-            ngx.say("set err: ", err)
-            break
-        end
+            local ok, err = dict:set(i, i)
+            if not ok then
+                ngx.say("set err: ", err)
+                break
+            end
         end
 
         local two = dict:get(2)
@@ -572,12 +572,12 @@ two == number 2: true
 
         local len, err = dict:lpush("list", "foo")
         if not len then
-        ngx.say("push err: ", err)
+            ngx.say("push err: ", err)
         end
 
         local ok, err = dict:set("key", "bar")
         if not ok then
-        ngx.say("set err: ", err)
+            ngx.say("set err: ", err)
         end
 
         local keys = dict:get_keys(0)
@@ -608,17 +608,17 @@ keys number: 0
         local long_str = string.rep("foo", 10)
 
         for i = 1, 3 do
-        local len, err = dict:lpush("list", long_str)
-        if not len then
-            ngx.say("push err: ", err)
-        end
+            local len, err = dict:lpush("list", long_str)
+            if not len then
+                ngx.say("push err: ", err)
+            end
         end
 
         for i = 1, 3 do
-        local val, err = dict:lpop("list")
-        if val then
-            ngx.say(val)
-        end
+            local val, err = dict:lpop("list")
+            if val then
+                ngx.say(val)
+            end
         end
     }
 --- stream_response
@@ -640,25 +640,25 @@ foofoofoofoofoofoofoofoofoofoo
         local long_str = string.rep("foo", 10 * 1024) -- 30k
 
         for i = 1, 100 do
-        for j = 1, 10 do
-            local key = "list" .. j
-            local len, err = dict:lpush(key, long_str)
-            if not len then
-            ngx.say("push err: ", err)
+            for j = 1, 10 do
+                local key = "list" .. j
+                local len, err = dict:lpush(key, long_str)
+                if not len then
+                ngx.say("push err: ", err)
+                end
             end
-        end
 
-        dict:flush_all()
+            dict:flush_all()
 
-        for j = 10, 1, -1 do
-            local key = "list" .. j
-            local newval, err = dict:incr(key, 1, 0)
-            if not newval then
-            ngx.say("incr err: ", err)
+            for j = 10, 1, -1 do
+                local key = "list" .. j
+                local newval, err = dict:incr(key, 1, 0)
+                if not newval then
+                ngx.say("incr err: ", err)
+                end
             end
-        end
 
-        dict:flush_all()
+            dict:flush_all()
         end
 
         ngx.say("done")

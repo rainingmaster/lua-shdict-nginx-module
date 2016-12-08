@@ -27,34 +27,32 @@ __DATA__
 
         local ret, err = dict:set("foo", "bar", 100)
         if ret then
-        ngx.say("set success")
+            ngx.say("set success")
         else
-        ngx.say("set err: ", err)
+            ngx.say("set err: ", err)
         end
 
         local val, err = dict:ttl("foo")
         if val then
-        ngx.say("ttl is: ", val)
+            ngx.say("ttl is: ", val)
         else
-        ngx.say("ttl err: ", err)
+            ngx.say("ttl err: ", err)
         end
 
         local ok, err = dict:expire("foo", 10)
-        if ok then
-        if ok == 0 then
+        if not ok then
+            ngx.say("expire err: ", err)
+        elseif ok == 0 then
             ngx.say("expire key not exist")
         else
             ngx.say("expire success: ", ok)
         end
-        else
-        ngx.say("expire err: ", err)
-        end
 
         local val, err = dict:ttl("foo")
         if val then
-        ngx.say("ttl is: ", val)
+            ngx.say("ttl is: ", val)
         else
-        ngx.say("ttl err: ", err)
+            ngx.say("ttl err: ", err)
         end
     }
 --- stream_response
@@ -75,9 +73,9 @@ ttl is: 10
 
         local len, err = dict:lpush("list", "bar")
         if len then
-        ngx.say("push success")
+            ngx.say("push success")
         else
-        ngx.say("push err: ", err)
+            ngx.say("push err: ", err)
         end
 
         local val, err = dict:ttl("list")
@@ -99,9 +97,9 @@ nil value is a list
 
         local len, err = dict:lpush("list", "bar")
         if len then
-        ngx.say("push success")
+            ngx.say("push success")
         else
-        ngx.say("push err: ", err)
+            ngx.say("push err: ", err)
         end
 
         local ok, err = dict:expire("list", 10)
@@ -124,14 +122,12 @@ push success
         local ret, err = dict:set("foo", "bar", 100)
 
         local ok, err = dict:expire("foo", -10)
-        if ok then
-        if ok == 0 then
+        if not ok then
+            ngx.say("expire err: ", err)
+        elseif ok == 0 then
             ngx.say("expire key not exist")
         else
             ngx.say("expire success: ", ok)
-        end
-        else
-        ngx.say("expire err: ", err)
         end
     }
 --- stream_response
@@ -149,14 +145,12 @@ bad "exptime" argument
         local ret, err = dict:set("foo", "bar", 100)
 
         local ok, err = dict:expire("foo", "bar")
-        if ok then
-        if ok == 0 then
+        if not ok then
+            ngx.say("expire err: ", err)
+        elseif ok == 0 then
             ngx.say("expire key not exist")
         else
             ngx.say("expire success: ", ok)
-        end
-        else
-        ngx.say("expire err: ", err)
         end
     }
 --- stream_response
@@ -175,18 +169,18 @@ bad "exptime" argument
 
         local ret, err = dict:set("foo", "bar", 0.01)
         if ret then
-        ngx.say("set success")
+            ngx.say("set success")
         else
-        ngx.say("set err: ", err)
+            ngx.say("set err: ", err)
         end
 
         ngx.sleep(0.02)
 
         local val, err = dict:ttl("foo")
         if val then
-        ngx.say("ttl is: ", val)
+            ngx.say("ttl is: ", val)
         else
-        ngx.say("ttl err: ", err)
+            ngx.say("ttl err: ", err)
         end
     }
 --- stream_response
@@ -207,9 +201,9 @@ ttl is: -2
 
         local val, err = dict:ttl("foo")
         if val then
-        ngx.say("ttl is: ", val)
+            ngx.say("ttl is: ", val)
         else
-        ngx.say("ttl err: ", err)
+            ngx.say("ttl err: ", err)
         end
     }
 --- stream_response
@@ -229,16 +223,16 @@ ttl is: -2
 
         local ret, err = dict:set("foo", "bar")
         if ret then
-        ngx.say("set success")
+            ngx.say("set success")
         else
-        ngx.say("set err: ", err)
+            ngx.say("set err: ", err)
         end
 
         local val, err = dict:ttl("foo")
         if val then
-        ngx.say("ttl is: ", val)
+            ngx.say("ttl is: ", val)
         else
-        ngx.say("ttl err: ", err)
+            ngx.say("ttl err: ", err)
         end
     }
 --- stream_response
@@ -259,22 +253,20 @@ ttl is: -1
 
         local ret, err = dict:set("foo", "bar", 0.01)
         if ret then
-        ngx.say("set success")
+            ngx.say("set success")
         else
-        ngx.say("set err: ", err)
+            ngx.say("set err: ", err)
         end
 
         ngx.sleep(0.02)
 
         local ok, err = dict:expire("foo", 10)
-        if ok then
-        if ok == 0 then
+        if not ok then
+            ngx.say("expire err: ", err)
+        elseif ok == 0 then
             ngx.say("expire key not exist")
         else
             ngx.say("expire success: ", ok)
-        end
-        else
-        ngx.say("expire err: ", err)
         end
     }
 --- stream_response
@@ -294,14 +286,12 @@ expire key not exist
         dict:flush_all()
 
         local ok, err = dict:expire("foo", 10)
-        if ok then
-        if ok == 0 then
+        if not ok then
+            ngx.say("expire err: ", err)
+        elseif ok == 0 then
             ngx.say("expire key not exist")
         else
             ngx.say("expire success: ", ok)
-        end
-        else
-        ngx.say("expire err: ", err)
         end
     }
 --- stream_response
@@ -328,27 +318,25 @@ expire key not exist
 
         local val, err = dict:ttl("foo")
         if val then
-        ngx.say("ttl is: ", val)
+            ngx.say("ttl is: ", val)
         else
-        ngx.say("ttl err: ", err)
+            ngx.say("ttl err: ", err)
         end
 
         local ok, err = dict:expire("foo", 10)
-        if ok then
-        if ok == 0 then
+        if not ok then
+            ngx.say("expire err: ", err)
+        elseif ok == 0 then
             ngx.say("expire key not exist")
         else
             ngx.say("expire success: ", ok)
         end
-        else
-        ngx.say("expire err: ", err)
-        end
 
         local val, err = dict:ttl("foo")
         if val then
-        ngx.say("ttl is: ", val)
+            ngx.say("ttl is: ", val)
         else
-        ngx.say("ttl err: ", err)
+            ngx.say("ttl err: ", err)
         end
     }
 --- stream_response
@@ -371,34 +359,32 @@ ttl is: 10
 
         local ret, err = dict:set("foo", "bar", 10)
         if ret then
-        ngx.say("set success")
+            ngx.say("set success")
         else
-        ngx.say("set err: ", err)
+            ngx.say("set err: ", err)
         end
 
         local val, err = dict:ttl("foo")
         if val then
-        ngx.say("ttl is: ", val)
+            ngx.say("ttl is: ", val)
         else
-        ngx.say("ttl err: ", err)
+            ngx.say("ttl err: ", err)
         end
 
         local ok, err = dict:expire("foo", 0)
-        if ok then
-        if ok == 0 then
+        if not ok then
+            ngx.say("expire err: ", err)
+        elseif ok == 0 then
             ngx.say("expire key not exist")
         else
             ngx.say("expire success: ", ok)
         end
-        else
-        ngx.say("expire err: ", err)
-        end
 
         local val, err = dict:ttl("foo")
         if val then
-        ngx.say("ttl is: ", val)
+            ngx.say("ttl is: ", val)
         else
-        ngx.say("ttl err: ", err)
+            ngx.say("ttl err: ", err)
         end
     }
 --- stream_response

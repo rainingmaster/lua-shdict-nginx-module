@@ -194,21 +194,21 @@ nil
         local dogs = t.smalldogs
         local i = 0
         while i < 1000 do
-        i = i + 1
-        local val = string.rep(" hello", 10) .. i
-        local res, err, forcible = dogs:set("key_" .. i, val)
-        if not res or forcible then
-            ngx.say(res, " ", err, " ", forcible)
-            break
-        end
+            i = i + 1
+            local val = string.rep(" hello", 10) .. i
+            local res, err, forcible = dogs:set("key_" .. i, val)
+            if not res or forcible then
+                ngx.say(res, " ", err, " ", forcible)
+                break
+            end
         end
         ngx.say("abort at ", i)
         ngx.say("cur value: ", dogs:get("key_" .. i))
         if i > 1 then
-        ngx.say("1st value: ", dogs:get("key_1"))
+            ngx.say("1st value: ", dogs:get("key_1"))
         end
         if i > 2 then
-        ngx.say("2nd value: ", dogs:get("key_2"))
+            ngx.say("2nd value: ", dogs:get("key_2"))
         end
     }
 --- stream_response eval
@@ -229,16 +229,16 @@ my $a = "true nil true\nabort at (353|705)\ncur value: " . (" hello" x 10) . "\\
         local dogs = t.smalldogs
         local i = 0
         while i < 1000 do
-        i = i + 1
-        local val = string.rep(" hello", 10) .. i
-        if i == 10 then
-            dogs:get("key_1")
-        end
-        local res, err, forcible = dogs:set("key_" .. i, val)
-        if not res or forcible then
-            ngx.say(res, " ", err, " ", forcible)
-            break
-        end
+            i = i + 1
+            local val = string.rep(" hello", 10) .. i
+            if i == 10 then
+                dogs:get("key_1")
+            end
+            local res, err, forcible = dogs:set("key_" .. i, val)
+            if not res or forcible then
+                ngx.say(res, " ", err, " ", forcible)
+                break
+            end
         end
         ngx.say("abort at ", i)
         ngx.say("cur value: ", dogs:get("key_" .. i))
@@ -358,8 +358,8 @@ ngx_slab_alloc() failed: no memory in lua_shared_dict zone
         key = string.rep("a", 65536)
         ok, err = dogs:set(key, "world")
         if not ok then
-        ngx.say("not ok: ", err)
-        return
+            ngx.say("not ok: ", err)
+            return
         end
         ngx.say("ok")
 
@@ -381,8 +381,8 @@ not ok: key too long
         local dogs = t.dogs
         local ok, err = dogs:set("foo", dogs)
         if not ok then
-        ngx.say("not ok: ", err)
-        return
+            ngx.say("not ok: ", err)
+            return
         end
         ngx.say("ok")
     }
@@ -483,13 +483,13 @@ hello, world
         local dogs = t.smalldogs
         local i = 0
         while i < 1000 do
-        i = i + 1
-        local val = string.rep("hello", i )
-        local res, err, forcible = dogs:set("key_" .. i, val)
-        if not res or forcible then
-            ngx.say(res, " ", err, " ", forcible)
-            break
-        end
+            i = i + 1
+            local val = string.rep("hello", i )
+            local res, err, forcible = dogs:set("key_" .. i, val)
+            if not res or forcible then
+                ngx.say(res, " ", err, " ", forcible)
+                break
+            end
         end
         ngx.say("abort at ", i)
     }
@@ -1172,21 +1172,21 @@ bar
         local dogs = t.smalldogs
         local i = 0
         while i < 1000 do
-        i = i + 1
-        local val = string.rep(" hello", 10) .. i
-        local res, err = dogs:safe_set("key_" .. i, val)
-        if not res then
-            ngx.say(res, " ", err)
-            break
-        end
+            i = i + 1
+            local val = string.rep(" hello", 10) .. i
+            local res, err = dogs:safe_set("key_" .. i, val)
+            if not res then
+                ngx.say(res, " ", err)
+                break
+            end
         end
         ngx.say("abort at ", i)
         ngx.say("cur value: ", dogs:get("key_" .. i))
         if i > 1 then
-        ngx.say("1st value: ", dogs:get("key_1"))
+            ngx.say("1st value: ", dogs:get("key_1"))
         end
         if i > 2 then
-        ngx.say("2nd value: ", dogs:get("key_2"))
+            ngx.say("2nd value: ", dogs:get("key_2"))
         end
     }
 --- stream_response eval
@@ -1205,21 +1205,21 @@ my $a = "false no memory\nabort at (353|705)\ncur value: nil\n1st value: " . (" 
         local dogs = t.smalldogs
         local i = 0
         while i < 1000 do
-        i = i + 1
-        local val = string.rep(" hello", 10) .. i
-        local res, err = dogs:safe_add("key_" .. i, val)
-        if not res then
-            ngx.say(res, " ", err)
-            break
-        end
+            i = i + 1
+            local val = string.rep(" hello", 10) .. i
+            local res, err = dogs:safe_add("key_" .. i, val)
+            if not res then
+                ngx.say(res, " ", err)
+                break
+            end
         end
         ngx.say("abort at ", i)
         ngx.say("cur value: ", dogs:get("key_" .. i))
         if i > 1 then
-        ngx.say("1st value: ", dogs:get("key_1"))
+            ngx.say("1st value: ", dogs:get("key_1"))
         end
         if i > 2 then
-        ngx.say("2nd value: ", dogs:get("key_2"))
+            ngx.say("2nd value: ", dogs:get("key_2"))
         end
     }
 --- stream_response eval
@@ -1265,8 +1265,8 @@ cur value:  hello hello hello hello hello hello hello hello hello hello1
         local dogs = t.dogs
         local ok, err = dogs:set(nil, 32)
         if not ok then
-        ngx.say("not ok: ", err)
-        return
+            ngx.say("not ok: ", err)
+            return
         end
         ngx.say("ok")
     }
@@ -1285,8 +1285,8 @@ not ok: nil key
         local dogs = t.dogs
         local ok, err = dogs.set(nil, "foo", 32)
         if not ok then
-        ngx.say("not ok: ", err)
-        return
+            ngx.say("not ok: ", err)
+            return
         end
         ngx.say("ok")
     }
@@ -1304,8 +1304,8 @@ bad "zone" argument
         local dogs = t.dogs
         local ok, err = dogs:set("", 32)
         if not ok then
-        ngx.say("not ok: ", err)
-        return
+            ngx.say("not ok: ", err)
+            return
         end
         ngx.say("ok")
     }
@@ -1324,8 +1324,8 @@ not ok: empty key
         local dogs = t.dogs
         local ok, err = dogs.get(nil, "foo")
         if not ok then
-        ngx.say("not ok: ", err)
-        return
+            ngx.say("not ok: ", err)
+            return
         end
         ngx.say("ok")
     }
@@ -1343,8 +1343,8 @@ bad "zone" argument
         local dogs = t.dogs
         local ok, err = dogs:get(nil)
         if not ok then
-        ngx.say("not ok: ", err)
-        return
+            ngx.say("not ok: ", err)
+            return
         end
         ngx.say("ok")
     }
@@ -1363,8 +1363,8 @@ not ok: nil key
         local dogs = t.dogs
         local ok, err = dogs:get("")
         if not ok then
-        ngx.say("not ok: ", err)
-        return
+            ngx.say("not ok: ", err)
+            return
         end
         ngx.say("ok")
     }
@@ -1383,8 +1383,8 @@ not ok: empty key
         local dogs = t.dogs
         local ok, err = dogs:get(string.rep("a", 65536))
         if not ok then
-        ngx.say("not ok: ", err)
-        return
+            ngx.say("not ok: ", err)
+            return
         end
         ngx.say("ok")
     }
@@ -1403,15 +1403,15 @@ not ok: key too long
         local dogs = t.dogs
         local ok, err = dogs:set("foo", string.rep("helloworld", 1024))
         if not ok then
-        ngx.say("set not ok: ", err)
-        return
+            ngx.say("set not ok: ", err)
+            return
         end
         ngx.say("set ok")
 
         local data, err = dogs:get("foo")
         if data == nil and err then
-        ngx.say("get not ok: ", err)
-        return
+            ngx.say("get not ok: ", err)
+            return
         end
         ngx.say("get ok: ", #data)
 
@@ -1432,8 +1432,8 @@ get ok: 10240
         local dogs = t.dogs
         local ok, err = dogs:get_stale(nil)
         if not ok then
-        ngx.say("not ok: ", err)
-        return
+            ngx.say("not ok: ", err)
+            return
         end
         ngx.say("ok")
     }
@@ -1452,8 +1452,8 @@ not ok: nil key
         local dogs = t.dogs
         local ok, err = dogs:get_stale("")
         if not ok then
-        ngx.say("not ok: ", err)
-        return
+            ngx.say("not ok: ", err)
+            return
         end
         ngx.say("ok")
     }
@@ -1472,14 +1472,14 @@ not ok: empty key
         local dogs = t.dogs
         local ok, err = dogs:set(1024, "hello")
         if not ok then
-        ngx.say("set not ok: ", err)
-        return
+            ngx.say("set not ok: ", err)
+            return
         end
         ngx.say("set ok")
         local data, err = dogs:get_stale(1024)
         if not ok then
-        ngx.say("get_stale not ok: ", err)
-        return
+            ngx.say("get_stale not ok: ", err)
+            return
         end
         ngx.say("get_stale: ", data)
     }
@@ -1499,8 +1499,8 @@ get_stale: hello
         local dogs = t.dogs
         local ok, err = dogs:get_stale(string.rep("a", 65536))
         if not ok then
-        ngx.say("not ok: ", err)
-        return
+            ngx.say("not ok: ", err)
+            return
         end
         ngx.say("ok")
     }
@@ -1519,8 +1519,8 @@ not ok: key too long
         local dogs = t.dogs
         local data, err = dogs:get_stale("not_found")
         if data == nil and err then
-        ngx.say("get not ok: ", err)
-        return
+            ngx.say("get not ok: ", err)
+            return
         end
         ngx.say("get ok: ", data)
     }
@@ -1539,15 +1539,15 @@ get ok: nil
         local dogs = t.dogs
         local ok, err = dogs:set("foo", string.rep("helloworld", 1024))
         if not ok then
-        ngx.say("set not ok: ", err)
-        return
+            ngx.say("set not ok: ", err)
+            return
         end
         ngx.say("set ok")
 
         local data, err, stale = dogs:get_stale("foo")
         if data == nil and err then
-        ngx.say("get not ok: ", err)
-        return
+            ngx.say("get not ok: ", err)
+            return
         end
         ngx.say("get_stale ok: ", #data, ", stale: ", stale)
 
@@ -1568,15 +1568,15 @@ get_stale ok: 10240, stale: false
         local dogs = t.dogs
         local ok, err = dogs:set("foo", true)
         if not ok then
-        ngx.say("set not ok: ", err)
-        return
+            ngx.say("set not ok: ", err)
+            return
         end
         ngx.say("set ok")
 
         local data, err, stale = dogs:get_stale("foo")
         if data == nil and err then
-        ngx.say("get not ok: ", err)
-        return
+            ngx.say("get not ok: ", err)
+            return
         end
         ngx.say("get_stale ok: ", data, ", stale: ", stale)
 
@@ -1597,15 +1597,15 @@ get_stale ok: true, stale: false
         local dogs = t.dogs
         local ok, err = dogs:set("foo", false)
         if not ok then
-        ngx.say("set not ok: ", err)
-        return
+            ngx.say("set not ok: ", err)
+            return
         end
         ngx.say("set ok")
 
         local data, err, stale = dogs:get_stale("foo")
         if data == nil and err then
-        ngx.say("get not ok: ", err)
-        return
+            ngx.say("get not ok: ", err)
+            return
         end
         ngx.say("get_stale ok: ", data, ", stale: ", stale)
 
@@ -1626,15 +1626,15 @@ get_stale ok: false, stale: false
         local dogs = t.dogs
         local ok, err = dogs:set("foo", false, 0, 325)
         if not ok then
-        ngx.say("set not ok: ", err)
-        return
+            ngx.say("set not ok: ", err)
+            return
         end
         ngx.say("set ok")
 
         local data, err, stale = dogs:get_stale("foo")
         if data == nil and err then
-        ngx.say("get not ok: ", err)
-        return
+            ngx.say("get not ok: ", err)
+            return
         end
         flags = err
         ngx.say("get_stale ok: ", data, ", flags: ", flags,
@@ -1657,8 +1657,8 @@ get_stale ok: false, flags: 325, stale: false
         local dogs = t.dogs
         local ok, err = dogs:incr(nil, 32)
         if not ok then
-        ngx.say("not ok: ", err)
-        return
+            ngx.say("not ok: ", err)
+            return
         end
         ngx.say("ok")
     }
@@ -1677,8 +1677,8 @@ not ok: nil key
         local dogs = t.dogs
         local ok, err = dogs.incr(nil, "foo", 32)
         if not ok then
-        ngx.say("not ok: ", err)
-        return
+            ngx.say("not ok: ", err)
+            return
         end
         ngx.say("ok")
     }
@@ -1696,8 +1696,8 @@ bad "zone" argument
         local dogs = t.dogs
         local ok, err = dogs:incr("", 32)
         if not ok then
-        ngx.say("not ok: ", err)
-        return
+            ngx.say("not ok: ", err)
+            return
         end
         ngx.say("ok")
     }
@@ -1717,8 +1717,8 @@ not ok: empty key
         local key = string.rep("a", 65536)
         local ok, err = dogs:incr(key, 32)
         if not ok then
-        ngx.say("not ok: ", err)
-        return
+            ngx.say("not ok: ", err)
+            return
         end
         ngx.say("ok")
 
@@ -1739,20 +1739,20 @@ not ok: key too long
         local key = 56
         local ok, err = dogs:set(key, 1)
         if not ok then
-        ngx.say("set not ok: ", err)
-        return
+            ngx.say("set not ok: ", err)
+            return
         end
         ngx.say("set ok")
         ok, err = dogs:incr(key, 32)
         if not ok then
-        ngx.say("incr not ok: ", err)
-        return
+            ngx.say("incr not ok: ", err)
+            return
         end
         ngx.say("incr ok")
         local data, err = dogs:get(key)
         if data == nil and err then
-        ngx.say("get not ok: ", err)
-        return
+            ngx.say("get not ok: ", err)
+            return
         end
         local flags = err
         ngx.say("get ok: ", data, ", flags: ", flags)
@@ -1776,20 +1776,20 @@ get ok: 33, flags: nil
         local key = 56
         local ok, err = dogs:set(key, 1)
         if not ok then
-        ngx.say("set not ok: ", err)
-        return
+            ngx.say("set not ok: ", err)
+            return
         end
         ngx.say("set ok")
         ok, err = dogs:incr(key, "32")
         if not ok then
-        ngx.say("incr not ok: ", err)
-        return
+            ngx.say("incr not ok: ", err)
+            return
         end
         ngx.say("incr ok")
         local data, err = dogs:get(key)
         if data == nil and err then
         ngx.say("get not ok: ", err)
-        return
+            return
         end
         local flags = err
         ngx.say("get ok: ", data, ", flags: ", flags)
@@ -1812,8 +1812,8 @@ get ok: 33, flags: nil
         local dogs = t.dogs
         local ok, err = dogs:add("foo", nil)
         if not ok then
-        ngx.say("not ok: ", err)
-        return
+            ngx.say("not ok: ", err)
+            return
         end
         ngx.say("ok")
     }
