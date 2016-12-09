@@ -3,12 +3,16 @@ ngx_stream_lua_keyword="stream-lua-nginx-module"
 
 
 include=
-fill_fun=
+filled=
+define=
 if echo $NGX_ADDONS | grep $ngx_http_lua_keyword > /dev/null; then
     include="$include
     #include \"ngx_http_lua_api.h\""
 else
-    fill_fun="$fill_fun
+    define="
+    #define NGX_HTTP_MODULE 0
+    "
+    filled="$filled
     ngx_shm_zone_t* ngx_http_lua_shared_memory_add
         (ngx_conf_t *cf, ngx_str_t *name, size_t size, void *tag)
         { return NULL; }"
@@ -18,7 +22,10 @@ if echo $NGX_ADDONS | grep $ngx_stream_lua_keyword > /dev/null; then
     include="$include
     #include \"ngx_stream_lua_api.h\""
 else
-    fill_fun="$fill_fun
+    define="
+    #define NGX_STREAM_MODULE 0
+    "
+    filled="$filled
     ngx_shm_zone_t* ngx_http_stream_shared_memory_add
         (ngx_conf_t *cf, ngx_str_t *name, size_t size, void *tag)
         { return NULL; }"
@@ -31,7 +38,8 @@ fi
 
 
 sudo echo "$include" > $ngx_addon_dir/src/ngx_lua_shdict.h
-sudo echo "$fill_fun" >> $ngx_addon_dir/src/ngx_lua_shdict.h
+sudo echo "$define" >> $ngx_addon_dir/src/ngx_lua_shdict.h
+sudo echo "$filled" >> $ngx_addon_dir/src/ngx_lua_shdict.h
 
 
 ngx_addon_name=ngx_lua_shdict_module

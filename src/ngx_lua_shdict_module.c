@@ -21,14 +21,6 @@
 #include <lauxlib.h>
 
 
-#ifndef NGX_HTTP_MODULE
-#   define NGX_HTTP_MODULE 0
-#endif
-
-#ifndef NGX_STREAM_MODULE
-#   define NGX_STREAM_MODULE 0
-#endif
-
 #include "ngx_lua_shdict.h"
 
 
