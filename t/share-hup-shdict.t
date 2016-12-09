@@ -33,6 +33,8 @@ run_tests();
 __DATA__
 
 === TEST 1-1: initialize the shdict in stream
+--- http_config
+    lua_package_path "$TEST_NGINX_LUA_PACK_PATH";
 --- stream_config
     lua_package_path "$TEST_NGINX_LUA_PACK_PATH";
     lua_shared_mem stream_dict 900k;
@@ -63,6 +65,8 @@ push success
 
 
 === TEST 1-2: retrieve the shdict in http
+--- http_config
+    lua_package_path "$TEST_NGINX_LUA_PACK_PATH";
 --- stream_config
     lua_package_path "$TEST_NGINX_LUA_PACK_PATH";
     lua_shared_mem stream_dict 900k;
@@ -104,6 +108,12 @@ pop: 1
 --- http_config
     lua_package_path "$TEST_NGINX_LUA_PACK_PATH";
     lua_shared_mem http_dict 900k;
+--- stream_config
+    lua_package_path "$TEST_NGINX_LUA_PACK_PATH";
+--- stream_server_config
+    content_by_lua_block {
+        return
+    }
 --- config
     location = / {
         content_by_lua_block {
@@ -138,6 +148,8 @@ push success
 --- http_config
     lua_package_path "$TEST_NGINX_LUA_PACK_PATH";
     lua_shared_mem http_dict 900k;
+--- stream_config
+    lua_package_path "$TEST_NGINX_LUA_PACK_PATH";
 --- stream_server_config
     content_by_lua_block {
         local t = require("resty.shdict")
