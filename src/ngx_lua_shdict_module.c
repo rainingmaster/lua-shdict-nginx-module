@@ -20,6 +20,7 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
+
 #ifndef NGX_HTTP_MODULE
 #   define NGX_HTTP_MODULE 0
 #endif
@@ -28,13 +29,7 @@
 #   define NGX_STREAM_MODULE 0
 #endif
 
-#ifdef _NGX_HTTP_LUA_API_H_INCLUDED_
-#   include "ngx_http_lua_api.h"
-#endif
-
-#ifdef _NGX_STREAM_LUA_API_H_INCLUDED_
-#   include "ngx_stream_lua_api.h"
-#endif
+#include "ngx_lua_shdict.h"
 
 
 typedef struct {
@@ -97,12 +92,6 @@ enum {
 
 typedef ngx_shm_zone_t* (*ngx_shm_add_pt) \
                         (ngx_conf_t *cf, ngx_str_t *name, size_t size, void *tag);
-
-
-ngx_shm_zone_t* ngx_stream_lua_shared_memory_add \
-    (ngx_conf_t *cf, ngx_str_t *name, size_t size, void *tag);
-ngx_shm_zone_t* ngx_http_lua_shared_memory_add \
-    (ngx_conf_t *cf, ngx_str_t *name, size_t size, void *tag);
 
 
 static char *ngx_lua_shdict(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
@@ -403,11 +392,6 @@ char *ngx_lua_shdict_conf_init(ngx_conf_t *cf,
 
     cf->cycle->conf_ctx[ngx_lua_shdict_module.index] = (void ***) lscf;
 
-#ifndef _NGX_HTTP_LUA_API_H_INCLUDED_
-    lscf->shared_memory_add = ngx_stream_lua_shared_memory_add;
-#elif !(defined _NGX_STREAM_LUA_API_H_INCLUDED_)
-    lscf->shared_memory_add = ngx_http_lua_shared_memory_add;
-#else
     if (NGX_HTTP_MODULE == cf->module_type) {
         /* http first */
         lscf->shared_memory_add = ngx_http_lua_shared_memory_add;
@@ -415,7 +399,6 @@ char *ngx_lua_shdict_conf_init(ngx_conf_t *cf,
         /* stream */
         lscf->shared_memory_add = ngx_stream_lua_shared_memory_add;
     }
-#endif
 
     lscf->shdict_zones = ngx_palloc(cf->pool, sizeof(ngx_array_t));
     if (lscf->shdict_zones == NULL) {
@@ -447,14 +430,10 @@ ngx_lua_shdict(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ssize_t                       size;
     void                         *old_ctx;
 
-#ifndef _NGX_HTTP_LUA_API_H_INCLUDED_
-    if (cf->module_type != NGX_STREAM_MODULE) {
-#elif !(defined _NGX_STREAM_LUA_API_H_INCLUDED_)
-    if (cf->module_type != NGX_HTTP_MODULE) {
-#else
     if (cf->module_type != NGX_HTTP_MODULE &&
         cf->module_type != NGX_STREAM_MODULE) {
-#endif
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "\"%s\" directive is not allowed here", cmd->name.data);
         return NGX_CONF_ERROR;
     }
 

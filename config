@@ -1,5 +1,45 @@
+ngx_http_lua_keyword="lua-nginx-module"
+ngx_stream_lua_keyword="stream-lua-nginx-module"
+
+
+include=
+fill_fun=
+if echo $NGX_ADDONS | grep $ngx_http_lua_keyword > /dev/null; then
+    include="$include
+    #include \"ngx_http_lua_api.h\""
+else
+    fill_fun="$fill_fun
+    ngx_shm_zone_t* ngx_http_lua_shared_memory_add
+        (ngx_conf_t *cf, ngx_str_t *name, size_t size, void *tag)
+        { return NULL; }"
+fi
+
+if echo $NGX_ADDONS | grep $ngx_stream_lua_keyword > /dev/null; then
+    include="$include
+    #include \"ngx_stream_lua_api.h\""
+else
+    fill_fun="$fill_fun
+    ngx_shm_zone_t* ngx_http_stream_shared_memory_add
+        (ngx_conf_t *cf, ngx_str_t *name, size_t size, void *tag)
+        { return NULL; }"
+fi
+
+if test -z "$include"; then
+    echo "ngx_lua_shdict_module requires ngx_http_lua_module or ngx_stream_lua_module"
+    exit 1
+fi
+
+
+sudo echo "$include" > $ngx_addon_dir/src/ngx_lua_shdict.h
+sudo echo "$fill_fun" >> $ngx_addon_dir/src/ngx_lua_shdict.h
+
+
 ngx_addon_name=ngx_lua_shdict_module
 NGX_LUA_SHDICT_SRCS="$ngx_addon_dir/src/ngx_lua_shdict_module.c"
+NGX_LUA_SHDICT_DEPS="$ngx_addon_dir/src/ngx_lua_shdict.h"
 
+#a fake core module
 CORE_MODULES="$CORE_MODULES $ngx_addon_name"
+
 NGX_ADDON_SRCS="$NGX_ADDON_SRCS $NGX_LUA_SHDICT_SRCS"
+NGX_ADDON_DEPS="$NGX_ADDON_DEPS $NGX_LUA_SHDICT_DEPS"
