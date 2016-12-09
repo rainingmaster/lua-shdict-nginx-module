@@ -7,28 +7,33 @@ filled=
 define=
 if echo $NGX_ADDONS | grep $ngx_http_lua_keyword > /dev/null; then
     include="$include
-    #include \"ngx_http_lua_api.h\""
+#include \"ngx_http_lua_api.h\""
 else
+    if [ $HTTP != YES ]; then
     define="
-    #define NGX_HTTP_MODULE 0
-    "
+#define NGX_HTTP_MODULE 0"
+    fi
+
     filled="$filled
-    ngx_shm_zone_t* ngx_http_lua_shared_memory_add
-        (ngx_conf_t *cf, ngx_str_t *name, size_t size, void *tag)
-        { return NULL; }"
+ngx_shm_zone_t* ngx_http_lua_shared_memory_add
+    (ngx_conf_t *cf, ngx_str_t *name, size_t size, void *tag)
+    { return NULL; }"
 fi
 
 if echo $NGX_ADDONS | grep $ngx_stream_lua_keyword > /dev/null; then
     include="$include
-    #include \"ngx_stream_lua_api.h\""
+#include \"ngx_stream_lua_api.h\""
+
 else
+    if [ $STREAM != YES ]; then
     define="
-    #define NGX_STREAM_MODULE 0
-    "
+#define NGX_STREAM_MODULE 0"
+    fi
+
     filled="$filled
-    ngx_shm_zone_t* ngx_stream_lua_shared_memory_add
-        (ngx_conf_t *cf, ngx_str_t *name, size_t size, void *tag)
-        { return NULL; }"
+ngx_shm_zone_t* ngx_stream_lua_shared_memory_add
+    (ngx_conf_t *cf, ngx_str_t *name, size_t size, void *tag)
+    { return NULL; }"
 fi
 
 if test -z "$include"; then
