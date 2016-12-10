@@ -12,6 +12,9 @@ else
     if [ $HTTP != YES ]; then
     define="
 #define NGX_HTTP_MODULE 0"
+    else
+        include="$include
+#include <ngx_http.h>"
     fi
 
     filled="$filled
@@ -28,6 +31,9 @@ else
     if [ $STREAM != YES ]; then
     define="
 #define NGX_STREAM_MODULE 0"
+    else
+        include="$include
+#include <ngx_stream.h>"
     fi
 
     filled="$filled
@@ -46,6 +52,7 @@ sudo echo "$include" > $ngx_addon_dir/src/ngx_lua_shdict.h
 sudo echo "$define" >> $ngx_addon_dir/src/ngx_lua_shdict.h
 sudo echo "$filled" >> $ngx_addon_dir/src/ngx_lua_shdict.h
 
+cat $ngx_addon_dir/src/ngx_lua_shdict.h
 
 ngx_addon_name=ngx_lua_shdict_module
 NGX_LUA_SHDICT_SRCS="$ngx_addon_dir/src/ngx_lua_shdict_module.c"
