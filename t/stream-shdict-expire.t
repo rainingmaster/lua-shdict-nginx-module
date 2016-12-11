@@ -165,8 +165,6 @@ bad "exptime" argument
         local t = require("resty.shdict")
         local dict = t.dict
 
-        dict:flush_all()
-
         local ret, err = dict:set("foo", "bar", 0.01)
         if ret then
             ngx.say("set success")
@@ -197,8 +195,6 @@ ttl is: -2
         local t = require("resty.shdict")
         local dict = t.dict
 
-        dict:flush_all()
-
         local val, err = dict:ttl("foo")
         if val then
             ngx.say("ttl is: ", val)
@@ -218,8 +214,6 @@ ttl is: -2
     content_by_lua_block {
         local t = require("resty.shdict")
         local dict = t.dict
-
-        dict:flush_all()
 
         local ret, err = dict:set("foo", "bar")
         if ret then
@@ -248,8 +242,6 @@ ttl is: -1
     content_by_lua_block {
         local t = require("resty.shdict")
         local dict = t.dict
-
-        dict:flush_all()
 
         local ret, err = dict:set("foo", "bar", 0.01)
         if ret then
@@ -283,8 +275,6 @@ expire key not exist
         local t = require("resty.shdict")
         local dict = t.dict
 
-        dict:flush_all()
-
         local ok, err = dict:expire("foo", 10)
         if not ok then
             ngx.say("expire err: ", err)
@@ -306,8 +296,6 @@ expire key not exist
     content_by_lua_block {
         local t = require("resty.shdict")
         local dict = t.dict
-
-        dict:flush_all()
 
         local ret, err = dict:set("foo", "bar")
         if ret then
@@ -354,8 +342,6 @@ ttl is: 10
     content_by_lua_block {
         local t = require("resty.shdict")
         local dict = t.dict
-
-        dict:flush_all()
 
         local ret, err = dict:set("foo", "bar", 10)
         if ret then
