@@ -33,11 +33,7 @@ __DATA__
         end
 
         local val, err = dict:ttl("foo")
-        if val then
-            ngx.say("ttl is: ", val)
-        else
-            ngx.say("ttl err: ", err)
-        end
+        ngx.say("ttl is: ", val)
 
         local ok, err = dict:expire("foo", 10)
         if not ok then
@@ -49,11 +45,7 @@ __DATA__
         end
 
         local val, err = dict:ttl("foo")
-        if val then
-            ngx.say("ttl is: ", val)
-        else
-            ngx.say("ttl err: ", err)
-        end
+        ngx.say("ttl is: ", val)
     }
 --- stream_response
 set success
@@ -64,7 +56,7 @@ ttl is: 10
 [error]
 
 
-=== TEST 2: ttl operation on list type
+=== TEST 2: ttl: get ttl on a list
 --- stream_config eval: $::StreamConfig
 --- stream_server_config
     content_by_lua_block {
@@ -79,16 +71,30 @@ ttl is: 10
         end
 
         local val, err = dict:ttl("list")
-        ngx.say(val, " ", err)
+        ngx.say("ttl is: ", val)
+
+        local ok, err = dict:expire("list", 10)
+        if not ok then
+            ngx.say("expire err: ", err)
+        elseif ok == 0 then
+            ngx.say("expire key not exist")
+        else
+            ngx.say("expire success: ", ok)
+        end
+
+        local val, err = dict:ttl("list")
+        ngx.say("ttl is: ", val)
     }
 --- stream_response
 push success
-nil value is a list
+ttl is: -1
+expire success: 1
+ttl is: 10
 --- no_error_log
 [error]
 
 
-=== TEST 3: expire operation on list type
+=== TEST 3: expire: set ttl on a list
 --- stream_config eval: $::StreamConfig
 --- stream_server_config
     content_by_lua_block {
@@ -107,12 +113,12 @@ nil value is a list
     }
 --- stream_response
 push success
-0 value is a list
+1 nil
 --- no_error_log
 [error]
 
 
-=== TEST 4: expire operation with negative number
+=== TEST 4: expire: set ttl by negative number
 --- stream_config eval: $::StreamConfig
 --- stream_server_config
     content_by_lua_block {
@@ -135,7 +141,7 @@ push success
 bad "exptime" argument
 
 
-=== TEST 5: expire operation with illegal parameter
+=== TEST 5: expire: set ttl by illegal parameter
 --- stream_config eval: $::StreamConfig
 --- stream_server_config
     content_by_lua_block {
@@ -158,7 +164,7 @@ bad "exptime" argument
 bad "exptime" argument
 
 
-=== TEST 6: ttl operation on expired key
+=== TEST 6: ttl: get ttl on a expired key
 --- stream_config eval: $::StreamConfig
 --- stream_server_config
     content_by_lua_block {
@@ -175,11 +181,7 @@ bad "exptime" argument
         ngx.sleep(0.02)
 
         local val, err = dict:ttl("foo")
-        if val then
-            ngx.say("ttl is: ", val)
-        else
-            ngx.say("ttl err: ", err)
-        end
+        ngx.say("ttl is: ", val)
     }
 --- stream_response
 set success
@@ -188,7 +190,7 @@ ttl is: -2
 [error]
 
 
-=== TEST 7: ttl operation on nonexistent key
+=== TEST 7: ttl: get ttl on nil key
 --- stream_config eval: $::StreamConfig
 --- stream_server_config
     content_by_lua_block {
@@ -196,11 +198,7 @@ ttl is: -2
         local dict = t.dict
 
         local val, err = dict:ttl("foo")
-        if val then
-            ngx.say("ttl is: ", val)
-        else
-            ngx.say("ttl err: ", err)
-        end
+        ngx.say("ttl is: ", val)
     }
 --- stream_response
 ttl is: -2
@@ -208,7 +206,7 @@ ttl is: -2
 [error]
 
 
-=== TEST 8: ttl operation on no expiration time key
+=== TEST 8: ttl: get ttl on a key exists but has no associated expire
 --- stream_config eval: $::StreamConfig
 --- stream_server_config
     content_by_lua_block {
@@ -223,11 +221,7 @@ ttl is: -2
         end
 
         local val, err = dict:ttl("foo")
-        if val then
-            ngx.say("ttl is: ", val)
-        else
-            ngx.say("ttl err: ", err)
-        end
+        ngx.say("ttl is: ", val)
     }
 --- stream_response
 set success
@@ -236,7 +230,7 @@ ttl is: -1
 [error]
 
 
-=== TEST 9: expire operation on expired key
+=== TEST 9: expire: set ttl on a expired key
 --- stream_config eval: $::StreamConfig
 --- stream_server_config
     content_by_lua_block {
@@ -268,7 +262,7 @@ expire key not exist
 [error]
 
 
-=== TEST 10: expire operation on nonexistent key
+=== TEST 10: expire: set ttl on a nil key
 --- stream_config eval: $::StreamConfig
 --- stream_server_config
     content_by_lua_block {
@@ -290,7 +284,7 @@ expire key not exist
 [error]
 
 
-=== TEST 11: expire operation on no expiration time key
+=== TEST 11: expire: get ttl on a key exists but has no associated expire
 --- stream_config eval: $::StreamConfig
 --- stream_server_config
     content_by_lua_block {
@@ -305,11 +299,7 @@ expire key not exist
         end
 
         local val, err = dict:ttl("foo")
-        if val then
-            ngx.say("ttl is: ", val)
-        else
-            ngx.say("ttl err: ", err)
-        end
+        ngx.say("ttl is: ", val)
 
         local ok, err = dict:expire("foo", 10)
         if not ok then
@@ -321,11 +311,7 @@ expire key not exist
         end
 
         local val, err = dict:ttl("foo")
-        if val then
-            ngx.say("ttl is: ", val)
-        else
-            ngx.say("ttl err: ", err)
-        end
+        ngx.say("ttl is: ", val)
     }
 --- stream_response
 set success
@@ -336,7 +322,7 @@ ttl is: 10
 [error]
 
 
-=== TEST 11: set a key never expire by expire
+=== TEST 12: expire: set a key never expired by expire
 --- stream_config eval: $::StreamConfig
 --- stream_server_config
     content_by_lua_block {
@@ -351,11 +337,7 @@ ttl is: 10
         end
 
         local val, err = dict:ttl("foo")
-        if val then
-            ngx.say("ttl is: ", val)
-        else
-            ngx.say("ttl err: ", err)
-        end
+        ngx.say("ttl is: ", val)
 
         local ok, err = dict:expire("foo", 0)
         if not ok then
@@ -367,16 +349,74 @@ ttl is: 10
         end
 
         local val, err = dict:ttl("foo")
-        if val then
-            ngx.say("ttl is: ", val)
-        else
-            ngx.say("ttl err: ", err)
-        end
+        ngx.say("ttl is: ", val)
     }
 --- stream_response
 set success
 ttl is: 10
 expire success: 1
 ttl is: -1
+--- no_error_log
+[error]
+
+
+=== TEST 13: expire_stale: set ttl on a expired key
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dict = t.dict
+
+        local ret, err = dict:set("foo", "bar", 00.1)
+        if ret then
+            ngx.say("set success")
+        else
+            ngx.say("set err: ", err)
+        end
+        
+        ngx.sleep(1)
+
+        local val, flags, stale = dict:get_stale("foo")
+        ngx.say(val, " ", flags, " ", stale)
+
+        local ok, stale = dict:expire_stale("foo", 10)
+        if not ok then
+            ngx.say("expire err: ", stale)
+        elseif ok == 0 then
+            ngx.say("expire key not exist")
+        else
+            ngx.say("expire success: ", ok, " ", stale)
+        end
+
+        local val, flags, stale = dict:get_stale("foo")
+        ngx.say(val, " ", flags, " ", stale)
+    }
+--- stream_response
+set success
+bar nil true
+expire success: 1 true
+bar nil false
+--- no_error_log
+[error]
+
+
+=== TEST 14: expire_stale: set ttl on a nil key
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dict = t.dict
+
+        local ok, err = dict:expire_stale("foo", 10)
+        if not ok then
+            ngx.say("expire err: ", err)
+        elseif ok == 0 then
+            ngx.say("expire key not exist")
+        else
+            ngx.say("expire success: ", ok)
+        end
+    }
+--- stream_response
+expire key not exist
 --- no_error_log
 [error]

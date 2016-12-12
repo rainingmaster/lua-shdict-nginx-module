@@ -64,11 +64,7 @@ typedef struct {
 #define NGX_LUA_SHDICT_ADD         0x0001
 #define NGX_LUA_SHDICT_REPLACE     0x0002
 #define NGX_LUA_SHDICT_SAFE_STORE  0x0004
-#define NGX_LUA_SHDICT_EXPIRE      0x0008
-
-
-#define NGX_LUA_SHDICT_STALE       0x0001
-#define NGX_LUA_SHDICT_TTL         0x0002
+#define NGX_LUA_SHDICT_STALE       0x0008
 
 
 #define NGX_LUA_SHDICT_LEFT        0x0001

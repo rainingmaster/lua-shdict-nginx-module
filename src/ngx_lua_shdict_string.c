@@ -67,25 +67,6 @@ ngx_lua_ffi_shdict_store_helper(ngx_shm_zone_t *zone, int op, u_char *key,
 
     rc = ngx_lua_shdict_lookup(zone, hash, key, key_len, &sd);
 
-    if (op & NGX_LUA_SHDICT_EXPIRE) {
-
-        if (rc == NGX_DECLINED || rc == NGX_DONE) {
-            ngx_shmtx_unlock(&ctx->shpool->mutex);
-            *errmsg = "not found";
-            return NGX_DECLINED;
-        }
-
-        if (sd->value_type == SHDICT_TLIST) {
-            ngx_shmtx_unlock(&ctx->shpool->mutex);
-            *errmsg = "value is a list";
-            return NGX_ERROR;
-        }
-
-        /* rc == NGX_OK */
-
-        goto expire;
-    }
-
     if (op & NGX_LUA_SHDICT_REPLACE) {
 
         if (rc == NGX_DECLINED || rc == NGX_DONE) {
@@ -273,7 +254,7 @@ int
 ngx_lua_ffi_shdict_get_helper(ngx_shm_zone_t *zone, int op, u_char *key,
     size_t key_len, int *value_type, u_char **str_value_buf,
     size_t *str_value_len, double *num_value, int *user_flags,
-    int *ttl, int *is_stale, char **errmsg)
+    int *is_stale, char **errmsg)
 {
     ngx_str_t                    name;
     uint32_t                     hash;
@@ -281,7 +262,6 @@ ngx_lua_ffi_shdict_get_helper(ngx_shm_zone_t *zone, int op, u_char *key,
     ngx_lua_shdict_ctx_t        *ctx;
     ngx_lua_shdict_node_t       *sd;
     ngx_str_t                    value;
-    uint64_t                     now;
     ngx_time_t                  *tp;
 
     ctx = zone->data;
@@ -296,34 +276,6 @@ ngx_lua_ffi_shdict_get_helper(ngx_shm_zone_t *zone, int op, u_char *key,
     }
 
     rc = ngx_lua_shdict_lookup(zone, hash, key, key_len, &sd);
-
-    if (op & NGX_LUA_SHDICT_TTL) {
-
-        if (rc == NGX_DECLINED || rc == NGX_DONE) {
-            *ttl = -2;
-        } else { /* rc == NGX_OK */
-
-            if (sd->value_type == SHDICT_TLIST) {
-                ngx_shmtx_unlock(&ctx->shpool->mutex);
-                *errmsg = "value is a list";
-                return NGX_ERROR;
-            }
-
-            if (sd->expires == 0) {
-                *ttl = -1;
-            } else {
-                tp = ngx_timeofday();
-                now = (uint64_t) tp->sec * 1000 + tp->msec;
-                *ttl = (int)((sd->expires - now) / 1000);
-                if (*ttl < 0) {
-                    *ttl = -2;
-                }
-            }
-        }
-
-        ngx_shmtx_unlock(&ctx->shpool->mutex);
-        return NGX_OK;
-    }
 
     if (rc == NGX_DECLINED || (rc == NGX_DONE && ! (op & NGX_LUA_SHDICT_STALE))) {
         ngx_shmtx_unlock(&ctx->shpool->mutex);
@@ -417,9 +369,6 @@ ngx_lua_ffi_shdict_get_helper(ngx_shm_zone_t *zone, int op, u_char *key,
     ngx_shmtx_unlock(&ctx->shpool->mutex);
 
     if (op & NGX_LUA_SHDICT_STALE) {
-
-        /* always return value, flags, stale */
-
         *is_stale = (rc == NGX_DONE);
         return NGX_OK;
     }
@@ -431,11 +380,12 @@ ngx_lua_ffi_shdict_get_helper(ngx_shm_zone_t *zone, int op, u_char *key,
 int
 ngx_lua_ffi_shdict_incr_helper(ngx_shm_zone_t *zone, u_char *key,
     size_t key_len, double *value, char **err, int has_init, double init,
-    int *forcible)
+    int exptime, int *forcible)
 {
     int                          i, n;
     uint32_t                     hash;
     ngx_int_t                    rc;
+    ngx_time_t                  *tp;
     ngx_lua_shdict_ctx_t        *ctx;
     ngx_lua_shdict_node_t       *sd;
     double                       num;
@@ -506,6 +456,15 @@ ngx_lua_ffi_shdict_incr_helper(ngx_shm_zone_t *zone, u_char *key,
     num += *value;
 
     ngx_memcpy(p, (double *) &num, sizeof(double));
+
+    if (exptime > 0) {
+        tp = ngx_timeofday();
+        sd->expires = (uint64_t) tp->sec * 1000 + tp->msec
+                      + (uint64_t) exptime;
+
+    } else {
+        /* not replace old ttl */
+    }
 
     ngx_shmtx_unlock(&ctx->shpool->mutex);
 
@@ -603,6 +562,15 @@ setvalue:
 
     p = ngx_copy(sd->data, key, key_len);
     ngx_memcpy(p, (double *) &num, sizeof(double));
+
+    if (exptime > 0) {
+        tp = ngx_timeofday();
+        sd->expires = (uint64_t) tp->sec * 1000 + tp->msec
+                      + (uint64_t) exptime;
+
+    } else {
+        sd->expires = 0;
+    }
 
     ngx_shmtx_unlock(&ctx->shpool->mutex);
 

@@ -40,6 +40,100 @@ ngx_lua_ffi_shdict_find_zone(ngx_shm_zone_t **zones, u_char *name_data, size_t n
 
 
 int
+ngx_lua_ffi_shdict_expire_helper(ngx_shm_zone_t *zone, int op, u_char *key,
+    size_t key_len, int exptime, int *is_stale, char **errmsg)
+{
+    uint32_t                     hash;
+    ngx_int_t                    rc;
+    ngx_time_t                  *tp;
+    ngx_lua_shdict_ctx_t        *ctx;
+    ngx_lua_shdict_node_t       *sd;
+
+    ctx = zone->data;
+
+    hash = ngx_crc32_short(key, key_len);
+
+    ngx_shmtx_lock(&ctx->shpool->mutex);
+
+    if (! (op & NGX_LUA_SHDICT_STALE)) {
+        ngx_lua_shdict_expire(ctx, 1);
+    }
+
+    rc = ngx_lua_shdict_lookup(zone, hash, key, key_len, &sd);
+
+    if (rc == NGX_DECLINED || (rc == NGX_DONE && ! (op & NGX_LUA_SHDICT_STALE))) {
+        ngx_shmtx_unlock(&ctx->shpool->mutex);
+        *errmsg = "not found";
+        return NGX_DECLINED;
+    }
+
+    /* rc == NGX_OK || (rc == NGX_DONE && (op & NGX_LUA_SHDICT_STALE)) */
+
+    if (exptime > 0) {
+        tp = ngx_timeofday();
+        sd->expires = (uint64_t) tp->sec * 1000 + tp->msec
+                      + (uint64_t) exptime;
+
+    } else {
+        sd->expires = 0;
+    }
+
+    ngx_shmtx_unlock(&ctx->shpool->mutex);
+
+    if (op & NGX_LUA_SHDICT_STALE) {
+        *is_stale = (rc == NGX_DONE);
+        return NGX_OK;
+    }
+
+    return NGX_OK;
+}
+
+
+int
+ngx_lua_ffi_shdict_ttl_helper(ngx_shm_zone_t *zone, u_char *key,
+    size_t key_len, int *ttl, char **errmsg)
+{
+    uint32_t                     hash;
+    ngx_int_t                    rc;
+    ngx_time_t                  *tp;
+    ngx_lua_shdict_ctx_t        *ctx;
+    ngx_lua_shdict_node_t       *sd;
+    uint64_t                     now;
+
+    ctx = zone->data;
+
+    hash = ngx_crc32_short(key, key_len);
+
+    ngx_shmtx_lock(&ctx->shpool->mutex);
+
+    ngx_lua_shdict_expire(ctx, 1);
+
+    rc = ngx_lua_shdict_lookup(zone, hash, key, key_len, &sd);
+
+    if (rc == NGX_DECLINED || rc == NGX_DONE) {
+        *ttl = -2;
+    } else { /* rc == NGX_OK */
+
+        if (sd->expires == 0) {
+            *ttl = -1;
+        } else {
+            tp = ngx_timeofday();
+            now = (uint64_t) tp->sec * 1000 + tp->msec;
+            *ttl = (int)((sd->expires - now) / 1000);
+            if (*ttl < 0) {
+                *ttl = -2;
+            }
+        }
+    }
+
+    ngx_shmtx_unlock(&ctx->shpool->mutex);
+
+    return NGX_OK;
+}
+
+
+
+int
 ngx_lua_ffi_shdict_get_keys(ngx_shm_zone_t *zone, int attempts,
     ngx_str_t **keys_buf, int *keys_num, char **errmsg)
 {

@@ -84,6 +84,7 @@ The resulting object `dict` has the following methods:
 * [flush_expired](#flush_expired)
 * [get_keys](#get_keys)
 * [expire](#expire)
+* [expire_stale](#expire_stale)
 * [ttl](#ttl)
 
 
@@ -93,7 +94,7 @@ get
 
 **context:** *init_by_lua&#42;, init_worker_by_lua&#42;, set_by_lua&#42;, rewrite_by_lua&#42;, access_by_lua&#42;, content_by_lua&#42;, header_filter_by_lua&#42;, body_filter_by_lua&#42;, log_by_lua&#42;, ngx.timer.&#42;, balancer_by_lua&#42;, ssl_certificate_by_lua&#42;, ssl_session_fetch_by_lua&#42;, ssl_session_store_by_lua&#42;*
 
-Retrieving the value in the dictionary [dict](#) for the key `key`. If the key does not exist or has expired, then `nil` will be returned.
+Retrieving the value in the dictionary `dict` for the key `key`. If the key does not exist or has expired, then `nil` will be returned.
 
 In case of errors, `nil` and a string describing the error will be returned.
 
@@ -139,7 +140,7 @@ set
 
 **context:** *init_by_lua&#42;, set_by_lua&#42;, rewrite_by_lua&#42;, access_by_lua&#42;, content_by_lua&#42;, header_filter_by_lua&#42;, body_filter_by_lua&#42;, log_by_lua&#42;, ngx.timer.&#42;, balancer_by_lua&#42;, ssl_certificate_by_lua&#42;, ssl_session_fetch_by_lua&#42;, ssl_session_store_by_lua&#42;*
 
-Unconditionally sets a key-value pair into the shm-based dictionary [dict](#). Returns three values:
+Unconditionally sets a key-value pair into the shm-based dictionary `dict`. Returns three values:
 
 * `success`: boolean value to indicate whether the key-value pair is stored or not.
 * `err`: textual error message, can be `"no memory"`.
@@ -191,7 +192,7 @@ add
 
 **context:** *init_by_lua&#42;, set_by_lua&#42;, rewrite_by_lua&#42;, access_by_lua&#42;, content_by_lua&#42;, header_filter_by_lua&#42;, body_filter_by_lua&#42;, log_by_lua&#42;, ngx.timer.&#42;, balancer_by_lua&#42;, ssl_certificate_by_lua&#42;, ssl_session_fetch_by_lua&#42;, ssl_session_store_by_lua&#42;*
 
-Just like the [set](#set) method, but only stores the key-value pair into the dictionary [dict](#) if the key does *not* exist.
+Just like the [set](#set) method, but only stores the key-value pair into the dictionary `dict` if the key does *not* exist.
 
 If the `key` argument already exists in the dictionary (and not expired for sure), the `success` return value will be `false` and the `err` return value will be `"exists"`.
 
@@ -213,7 +214,7 @@ replace
 
 **context:** *init_by_lua&#42;, set_by_lua&#42;, rewrite_by_lua&#42;, access_by_lua&#42;, content_by_lua&#42;, header_filter_by_lua&#42;, body_filter_by_lua&#42;, log_by_lua&#42;, ngx.timer.&#42;, balancer_by_lua&#42;, ssl_certificate_by_lua&#42;, ssl_session_fetch_by_lua&#42;, ssl_session_store_by_lua&#42;*
 
-Just like the [set](#set) method, but only stores the key-value pair into the dictionary [dict](#) if the key *does* exist.
+Just like the [set](#set) method, but only stores the key-value pair into the dictionary `dict` if the key *does* exist.
 
 If the `key` argument does *not* exist in the dictionary (or expired already), the `success` return value will be `false` and the `err` return value will be `"not found"`.
 
@@ -225,7 +226,7 @@ delete
 
 **context:** *init_by_lua&#42;, set_by_lua&#42;, rewrite_by_lua&#42;, access_by_lua&#42;, content_by_lua&#42;, header_filter_by_lua&#42;, body_filter_by_lua&#42;, log_by_lua&#42;, ngx.timer.&#42;, balancer_by_lua&#42;, ssl_certificate_by_lua&#42;, ssl_session_fetch_by_lua&#42;, ssl_session_store_by_lua&#42;*
 
-Unconditionally removes the key-value pair from the shm-based dictionary [dict](#).
+Unconditionally removes the key-value pair from the shm-based dictionary `dict`.
 
 It is equivalent to `dict:set(key, nil)`.
 
@@ -233,11 +234,13 @@ It is equivalent to `dict:set(key, nil)`.
 
 incr
 --------------------
-**syntax:** *newval, err, forcible? = dict:incr(key, value, init?)*
+**syntax:** *newval, err, forcible? = dict:incr(key, value, init?, exptime?)*
 
 **context:** *init_by_lua&#42;, set_by_lua&#42;, rewrite_by_lua&#42;, access_by_lua&#42;, content_by_lua&#42;, header_filter_by_lua&#42;, body_filter_by_lua&#42;, log_by_lua&#42;, ngx.timer.&#42;, balancer_by_lua&#42;, ssl_certificate_by_lua&#42;, ssl_session_fetch_by_lua&#42;, ssl_session_store_by_lua&#42;*
 
-Increments the (numerical) value for `key` in the shm-based dictionary [dict](#) by the step value `value`. Returns the new resulting number if the operation is successfully completed or `nil` and an error message otherwise.
+Increments the (numerical) value for `key` in the shm-based dictionary `dict` by the step value `value`. Returns the new resulting number if the operation is successfully completed or `nil` and an error message otherwise.
+
+The optional `exptime` argument specifies expiration time for `key`, similar to [set](#set).
 
 When the key does not exist or has already expired in the shared dictionary,
 
@@ -254,8 +257,6 @@ If the original value is not a valid Lua number in the dictionary, it will retur
 
 The `value` argument and `init` argument can be any valid Lua numbers, like negative numbers or floating-point numbers.
 
-This method was first introduced in the `v0.3.1rc22` release.
-
 [Back to TOC](#nginx-shared-dict-api-for-lua)
 
 lpush
@@ -264,7 +265,7 @@ lpush
 
 **context:** *init_by_lua&#42;, set_by_lua&#42;, rewrite_by_lua&#42;, access_by_lua&#42;, content_by_lua&#42;, header_filter_by_lua&#42;, body_filter_by_lua&#42;, log_by_lua&#42;, ngx.timer.&#42;, balancer_by_lua&#42;, ssl_certificate_by_lua&#42;, ssl_session_fetch_by_lua&#42;, ssl_session_store_by_lua&#42;*
 
-Inserts the specified (numerical or string) `value` at the head of the list named `key` in the shm-based dictionary [dict](#). Returns the number of elements in the list after the push operation.
+Inserts the specified (numerical or string) `value` at the head of the list named `key` in the shm-based dictionary `dict`. Returns the number of elements in the list after the push operation.
 
 If `key` does not exist, it is created as an empty list before performing the push operation. When the `key` already takes a value that is not a list, it will return `nil` and `"value not a list"`.
 
@@ -288,7 +289,7 @@ lpop
 
 **context:** *init_by_lua&#42;, set_by_lua&#42;, rewrite_by_lua&#42;, access_by_lua&#42;, content_by_lua&#42;, header_filter_by_lua&#42;, body_filter_by_lua&#42;, log_by_lua&#42;, ngx.timer.&#42;, balancer_by_lua&#42;, ssl_certificate_by_lua&#42;, ssl_session_fetch_by_lua&#42;, ssl_session_store_by_lua&#42;*
 
-Removes and returns the first element of the list named `key` in the shm-based dictionary [dict](#).
+Removes and returns the first element of the list named `key` in the shm-based dictionary `dict`.
 
 If `key` does not exist, it will return `nil`. When the `key` already takes a value that is not a list, it will return `nil` and `"value not a list"`.
 
@@ -300,7 +301,7 @@ rpop
 
 **context:** *init_by_lua&#42;, set_by_lua&#42;, rewrite_by_lua&#42;, access_by_lua&#42;, content_by_lua&#42;, header_filter_by_lua&#42;, body_filter_by_lua&#42;, log_by_lua&#42;, ngx.timer.&#42;, balancer_by_lua&#42;, ssl_certificate_by_lua&#42;, ssl_session_fetch_by_lua&#42;, ssl_session_store_by_lua&#42;*
 
-Removes and returns the last element of the list named `key` in the shm-based dictionary [dict](#).
+Removes and returns the last element of the list named `key` in the shm-based dictionary `dict`.
 
 If `key` does not exist, it will return `nil`. When the `key` already takes a value that is not a list, it will return `nil` and `"value not a list"`.
 
@@ -312,7 +313,7 @@ llen
 
 **context:** *init_by_lua&#42;, set_by_lua&#42;, rewrite_by_lua&#42;, access_by_lua&#42;, content_by_lua&#42;, header_filter_by_lua&#42;, body_filter_by_lua&#42;, log_by_lua&#42;, ngx.timer.&#42;, balancer_by_lua&#42;, ssl_certificate_by_lua&#42;, ssl_session_fetch_by_lua&#42;, ssl_session_store_by_lua&#42;*
 
-Returns the number of elements in the list named `key` in the shm-based dictionary [dict](#).
+Returns the number of elements in the list named `key` in the shm-based dictionary `dict`.
 
 If key does not exist, it is interpreted as an empty list and 0 is returned. When the `key` already takes a value that is not a list, it will return `nil` and `"value not a list"`.
 
@@ -326,7 +327,7 @@ flush_all
 
 Flushes out all the items in the dictionary. This method does not actuall free up all the memory blocks in the dictionary but just marks all the existing items as expired.
 
-See also [flush_expired](#flush_expired) and [dict](#).
+See also [flush_expired](#flush_expired) and `dict`.
 
 [Back to TOC](#nginx-shared-dict-api-for-lua)
 
@@ -340,7 +341,7 @@ Flushes out the expired items in the dictionary, up to the maximal number specif
 
 Unlike the [flush_all](#flush_all) method, this method actually free up the memory used by the expired items.
 
-See also [flush_all](#flush_all) and [dict](#).
+See also [flush_all](#flush_all) and `dict`.
 
 [Back to TOC](#nginx-shared-dict-api-for-lua)
 
@@ -360,13 +361,25 @@ By default, only the first 1024 keys (if any) are returned. When the `<max_count
 
 expire
 ------------------------
-**syntax:** *keys = dict:expire(key, exptime)*
+**syntax:** *ret = dict:expire(key, exptime)*
 
 **context:** *init_by_lua&#42;, set_by_lua&#42;, rewrite_by_lua&#42;, access_by_lua&#42;, content_by_lua&#42;, header_filter_by_lua&#42;, body_filter_by_lua&#42;, log_by_lua&#42;, ngx.timer.&#42;, balancer_by_lua&#42;, ssl_certificate_by_lua&#42;, ssl_session_fetch_by_lua&#42;, ssl_session_store_by_lua&#42;*
 
-Change the expiration time set by [set](#set), only for key-value pair. The time resolution is `0.001` seconds. If the `exptime` takes the value `0` , then the item will never expire.
+Set a key's time to live in seconds. The time resolution is `0.001` seconds. If the `exptime` takes the value `0` , then the item will never expire.
 
-`1` means expire `key` successfully, if `key` does not exist or `key` is expired, it will return `0`. When the `key` already takes a value that is not a list, it will return `nil` and `"value not a list"`.
+`1` means expire `key` successfully, if `key` does not exist or `key` is expired, it will return `0`.
+
+[Back to TOC](#nginx-shared-dict-api-for-lua)
+
+expire_stale
+------------------------
+**syntax:** *ret, stale = dict:expire_stale(key, exptime)*
+
+**context:** *init_by_lua&#42;, set_by_lua&#42;, rewrite_by_lua&#42;, access_by_lua&#42;, content_by_lua&#42;, header_filter_by_lua&#42;, body_filter_by_lua&#42;, log_by_lua&#42;, ngx.timer.&#42;, balancer_by_lua&#42;, ssl_certificate_by_lua&#42;, ssl_session_fetch_by_lua&#42;, ssl_session_store_by_lua&#42;*
+
+Similar to the [expire](#expire) method but set the `exptime` even if the key has already expired.
+
+If `ret` equal to `1`, the 2nd returns, `stale`, indicating whether the key has expired or not.
 
 [Back to TOC](#nginx-shared-dict-api-for-lua)
 
@@ -376,8 +389,8 @@ ttl
 
 **context:** *init_by_lua&#42;, set_by_lua&#42;, rewrite_by_lua&#42;, access_by_lua&#42;, content_by_lua&#42;, header_filter_by_lua&#42;, body_filter_by_lua&#42;, log_by_lua&#42;, ngx.timer.&#42;, balancer_by_lua&#42;, ssl_certificate_by_lua&#42;, ssl_session_fetch_by_lua&#42;, ssl_session_store_by_lua&#42;*
 
-Get the expiration time which set by [set](#set) or [expire](#expire).
+Get the time to live for `key`.
 
-If `key` does not exist, it will return `-1` and if `key` is expired, it will return `-2`. When the `key` already takes a value that is not a list, it will return `nil` and `"value not a list"`.
+If `key` does not exist, it will return `-1`, and if `key` is expired, it will return `-2`.
 
 [Back to TOC](#nginx-shared-dict-api-for-lua)
