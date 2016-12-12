@@ -2,10 +2,15 @@ ngx_http_lua_keyword="http-lua-nginx-module"
 ngx_stream_lua_keyword="stream-lua-nginx-module"
 
 
+found=0
 include=
 filled=
 define=
+
 if echo $NGX_ADDONS | grep $ngx_http_lua_keyword > /dev/null; then
+
+    found=1
+
     include="$include
 #include \"ngx_http_lua_api.h\""
 else
@@ -24,6 +29,9 @@ ngx_shm_zone_t* ngx_http_lua_shared_memory_add
 fi
 
 if echo $NGX_ADDONS | grep $ngx_stream_lua_keyword > /dev/null; then
+
+    found=1
+
     include="$include
 #include \"ngx_stream_lua_api.h\""
 
@@ -48,18 +56,27 @@ if test -z "$include"; then
 fi
 
 
-sudo echo "$include" > $ngx_addon_dir/src/ngx_lua_shdict.h
-sudo echo "$define" >> $ngx_addon_dir/src/ngx_lua_shdict.h
-sudo echo "$filled" >> $ngx_addon_dir/src/ngx_lua_shdict.h
+sudo echo "#ifndef _NGX_LUA_SHDICT_INCULDE_H_
+#define _NGX_LUA_SHDICT_INCULDE_H_" > $ngx_addon_dir/src/ngx_lua_shdict_include.h
+sudo echo "$include" >> $ngx_addon_dir/src/ngx_lua_shdict_include.h
+sudo echo "$define"  >> $ngx_addon_dir/src/ngx_lua_shdict_include.h
+sudo echo "$filled"  >> $ngx_addon_dir/src/ngx_lua_shdict_include.h
+sudo echo "
+#endif /* _NGX_LUA_SHDICT_INCULDE_H_ */
+" >> $ngx_addon_dir/src/ngx_lua_shdict_include.h
 
-cat $ngx_addon_dir/src/ngx_lua_shdict.h
+cat $ngx_addon_dir/src/ngx_lua_shdict_include.h
 
-ngx_addon_name=ngx_lua_shdict_module
-NGX_LUA_SHDICT_SRCS="$ngx_addon_dir/src/ngx_lua_shdict_module.c"
-NGX_LUA_SHDICT_DEPS="$ngx_addon_dir/src/ngx_lua_shdict.h"
 
 #a fake core module
-CORE_MODULES="$CORE_MODULES $ngx_addon_name"
+CORE_MODULES="$CORE_MODULES ngx_lua_shdict_module"
 
-NGX_ADDON_SRCS="$NGX_ADDON_SRCS $NGX_LUA_SHDICT_SRCS"
-NGX_ADDON_DEPS="$NGX_ADDON_DEPS $NGX_LUA_SHDICT_DEPS"
+NGX_ADDON_SRCS="$NGX_ADDON_SRCS \
+                $ngx_addon_dir/src/ngx_lua_shdict_module.c \
+                $ngx_addon_dir/src/ngx_lua_shdict_util.c \
+                $ngx_addon_dir/src/ngx_lua_shdict_key.c \
+                $ngx_addon_dir/src/ngx_lua_shdict_string.c \
+                $ngx_addon_dir/src/ngx_lua_shdict_list.c"
+NGX_ADDON_DEPS="$NGX_ADDON_DEPS \
+                $ngx_addon_dir/src/ngx_lua_shdict_include.h \
+                $ngx_addon_dir/src/ngx_lua_shdict_common.h"
