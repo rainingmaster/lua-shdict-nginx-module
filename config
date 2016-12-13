@@ -23,7 +23,7 @@ else
     fi
 
     filled="$filled
-ngx_shm_zone_t* ngx_http_lua_shared_memory_add
+static ngx_shm_zone_t* ngx_http_lua_shared_memory_add
     (ngx_conf_t *cf, ngx_str_t *name, size_t size, void *tag)
     { return NULL; }"
 fi
@@ -45,7 +45,7 @@ else
     fi
 
     filled="$filled
-ngx_shm_zone_t* ngx_stream_lua_shared_memory_add
+static ngx_shm_zone_t* ngx_stream_lua_shared_memory_add
     (ngx_conf_t *cf, ngx_str_t *name, size_t size, void *tag)
     { return NULL; }"
 fi

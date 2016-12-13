@@ -4,8 +4,8 @@
  */
 
 
-#ifndef _NGX_LUA_SHDICT_MODULE_H_
-#define _NGX_LUA_SHDICT_MODULE_H_
+#ifndef _NGX_LUA_SHDICT_COMMON_H_
+#define _NGX_LUA_SHDICT_COMMON_H_
 
 
 #ifndef DDEBUG
@@ -107,4 +107,4 @@ ngx_lua_shdict_get_list_head(ngx_lua_shdict_node_t *sd, size_t len)
 }
 
 
-#endif /* _NGX_STREAM_LUA_ARGS_H_INCLUDED_ */
+#endif /* _NGX_LUA_SHDICT_COMMON_H_ */
