@@ -23,7 +23,7 @@ else
     fi
 
     filled="$filled
-#define ngx_http_lua_shared_memory_add NULL
+#define ngx_http_lua_shared_memory_add NULL"
 fi
 
 if echo $NGX_ADDONS | grep $ngx_stream_lua_keyword > /dev/null; then
@@ -43,7 +43,7 @@ else
     fi
 
     filled="$filled
-#define ngx_stream_lua_shared_memory_add NULL
+#define ngx_stream_lua_shared_memory_add NULL"
 fi
 
 if test -z "$include"; then
