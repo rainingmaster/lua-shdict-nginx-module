@@ -262,7 +262,6 @@ ngx_lua_ffi_shdict_get_helper(ngx_shm_zone_t *zone, int op, u_char *key,
     ngx_lua_shdict_ctx_t        *ctx;
     ngx_lua_shdict_node_t       *sd;
     ngx_str_t                    value;
-    ngx_time_t                  *tp;
 
     ctx = zone->data;
     name = ctx->name;
@@ -462,8 +461,10 @@ ngx_lua_ffi_shdict_incr_helper(ngx_shm_zone_t *zone, u_char *key,
         sd->expires = (uint64_t) tp->sec * 1000 + tp->msec
                       + (uint64_t) exptime;
 
+    } else if (exptime < 0) {
+        sd->expires = 0;
     } else {
-        /* not replace old ttl */
+        /* use old ttl */
     }
 
     ngx_shmtx_unlock(&ctx->shpool->mutex);

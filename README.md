@@ -240,12 +240,16 @@ incr
 
 Increments the (numerical) value for `key` in the shm-based dictionary `dict` by the step value `value`. Returns the new resulting number if the operation is successfully completed or `nil` and an error message otherwise.
 
-The optional `exptime` argument specifies expiration time for `key`, similar to [set](#set).
-
 When the key does not exist or has already expired in the shared dictionary,
 
 1. if the `init` argument is not specified or takes the value `nil`, this method will return `nil` and the error string `"not found"`, or
 1. if the `init` argument takes a number value, this method will create a new `key` with the value `init + value`.
+
+The optional `exptime` argument specifies expiration time for `key`,
+
+1. if the `exptime` takes a number greater than 0, then the item will set expire by this number, or
+1. if the `exptime` takes a number less than 0, then the item will be set to never expire, or
+1. if the `exptime` takes the value `0` (which is the default), then the item's ttl will not change.
 
 Like the [add](#add) method, it also overrides the (least recently used) unexpired items in the store when running out of storage in the shared memory zone.
 

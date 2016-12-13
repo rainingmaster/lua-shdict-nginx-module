@@ -477,7 +477,7 @@ local function shdict_fetch(zone, key, op)
         return error("unknown value type: " .. typ)
     end
 
-    if flags ~= 0 then
+    if flags == 0 then
         flags = nil
     end
 
@@ -565,15 +565,13 @@ local function shdict_incr(zone, key, value, init, exptime)
     exptime = tonumber(exptime)
     if not exptime then
         exptime = 0
-    elseif exptime < 0 then
-        return error("bad \"exptime\" argument")
     end
 
     local forcible = int_tmp[0]
 
     local rc = C.ngx_lua_ffi_shdict_incr_helper(meta_zone, key, key_len, num_value,
-                                              errmsg, has_init, init, exptime,
-                                              forcible)
+                                                errmsg, has_init, init, exptime * 1000,
+                                                forcible)
     if rc ~= NGX_OK then  -- ~= NGX_OK
         return nil, ffi_str(errmsg[0])
     end
