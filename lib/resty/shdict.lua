@@ -477,13 +477,15 @@ local function shdict_fetch(zone, key, op)
         return error("unknown value type: " .. typ)
     end
 
-    if flags == 0 then
-        flags = nil
-    end
-
     if op == 0 then
+        if flags == 0 then
+            return val
+        end
         return val, flags
     else
+        if flags == 0 then
+            return val, nil, is_stale[0] == 1
+        end
         return val, flags, is_stale[0] == 1
     end
 end
