@@ -26,6 +26,29 @@
 #include "ngx_lua_shdict_include.h"
 
 
+#ifdef _NGX_HTTP_LUA_SHDICT_
+#   include "ngx_http_lua_api.h"
+#else
+#   if _NGX_HTTP_SHDICT_
+#       include <ngx_http.h>
+#   else
+#       define NGX_HTTP_MODULE 0
+#   endif
+#   define ngx_http_lua_shared_memory_add NULL
+#endif
+
+#ifdef _NGX_STREAM_LUA_SHDICT_
+#   include "ngx_stream_lua_api.h"
+#else
+#   if _NGX_STREAM_SHDICT_
+#       include <ngx_stream.h>
+#   else
+#       define NGX_STREAM_MODULE 0
+#   endif
+#   define ngx_stream_lua_shared_memory_add NULL
+#endif
+
+
 typedef struct {
     u_char                       color;
     uint8_t                      value_type;

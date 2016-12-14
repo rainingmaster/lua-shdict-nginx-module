@@ -3,48 +3,35 @@ ngx_stream_lua_keyword="stream-lua-nginx-module"
 
 
 found=0
-include=
-filled=
 define=
 
 if echo $NGX_ADDONS | grep $ngx_http_lua_keyword > /dev/null; then
-
-    found=1
-
-    include="$include
-#include \"ngx_http_lua_api.h\""
-else
-    if [ $HTTP != YES ]; then
-    define="
-#define NGX_HTTP_MODULE 0"
-    else
-        include="$include
-#include <ngx_http.h>"
+    if [ $HTTP = YES ]; then
+        found=1
+        define="$define
+#define _NGX_HTTP_LUA_SHDICT_ 1"
     fi
-
-    filled="$filled
-#define ngx_http_lua_shared_memory_add NULL"
+else
+    if [ $HTTP = YES ]; then
+        define="$define
+#define _NGX_HTTP_SHDICT_ 1"
+    fi
 fi
+
 
 if echo $NGX_ADDONS | grep $ngx_stream_lua_keyword > /dev/null; then
-
-    found=1
-
-    include="$include
-#include \"ngx_stream_lua_api.h\""
-
-else
-    if [ $STREAM != YES ]; then
-    define="
-#define NGX_STREAM_MODULE 0"
-    else
-        include="$include
-#include <ngx_stream.h>"
+    if [ $STREAM = YES ]; then
+        found=1
+        define="$define
+#define _NGX_STREAM_LUA_SHDICT_ 1"
     fi
-
-    filled="$filled
-#define ngx_stream_lua_shared_memory_add NULL"
+else
+    if [ $STREAM = YES ]; then
+        define="$define
+#define _NGX_STREAM_SHDICT_ 1"
+    fi
 fi
+
 
 if [ $found = 0 ]; then
     echo "$0: error: ngx_lua_shdict_module requires ngx_http_lua_module or ngx_stream_lua_module"
@@ -54,9 +41,7 @@ fi
 
 sudo echo "#ifndef _NGX_LUA_SHDICT_INCULDE_H_
 #define _NGX_LUA_SHDICT_INCULDE_H_" > $ngx_addon_dir/src/ngx_lua_shdict_include.h
-sudo echo "$include" >> $ngx_addon_dir/src/ngx_lua_shdict_include.h
 sudo echo "$define"  >> $ngx_addon_dir/src/ngx_lua_shdict_include.h
-sudo echo "$filled"  >> $ngx_addon_dir/src/ngx_lua_shdict_include.h
 sudo echo "
 #endif /* _NGX_LUA_SHDICT_INCULDE_H_ */
 " >> $ngx_addon_dir/src/ngx_lua_shdict_include.h

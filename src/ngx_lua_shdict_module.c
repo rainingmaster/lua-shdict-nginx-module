@@ -153,11 +153,25 @@ ngx_lua_shdict_conf_init(ngx_conf_t *cf, ngx_lua_shdict_conf_t **lscfp)
     cf->cycle->conf_ctx[ngx_lua_shdict_module.index] = (void ***) lscf;
 
     if (NGX_HTTP_MODULE == cf->module_type) {
-        /* http first */
-        lscf->shared_memory_add = ngx_http_lua_shared_memory_add;
+
+        if (ngx_http_lua_shared_memory_add != NULL) {
+            /* http first */
+            lscf->shared_memory_add = ngx_http_lua_shared_memory_add;
+        } else {
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                               "\"ngx_http_lua_module\" load failed");
+            return NGX_CONF_ERROR;
+        }
     } else {
-        /* stream */
-        lscf->shared_memory_add = ngx_stream_lua_shared_memory_add;
+
+        if (ngx_stream_lua_shared_memory_add != NULL) {
+            /* stream */
+            lscf->shared_memory_add = ngx_stream_lua_shared_memory_add;
+        } else {
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                               "\"ngx_stream_lua_module\" load failed");
+            return NGX_CONF_ERROR;
+        }
     }
 
     lscf->shdict_zones = ngx_palloc(cf->pool, sizeof(ngx_array_t));
@@ -171,7 +185,7 @@ ngx_lua_shdict_conf_init(ngx_conf_t *cf, ngx_lua_shdict_conf_t **lscfp)
     {
         return NGX_CONF_ERROR;
     }
-    
+
     lscf->ctx = cf->ctx;
 
     *lscfp = lscf;
@@ -192,15 +206,15 @@ ngx_lua_shdict(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     if (cf->module_type != NGX_HTTP_MODULE &&
         cf->module_type != NGX_STREAM_MODULE) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "\"%s\" directive is not allowed here", cmd->name.data);
-        return NGX_CONF_ERROR;
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                               "\"%s\" directive is not allowed here", cmd->name.data);
+            return NGX_CONF_ERROR;
     }
 
     lscf = (ngx_lua_shdict_conf_t *)cf->cycle->conf_ctx[ngx_lua_shdict_module.index];
     if (lscf == NULL &&
         NGX_CONF_OK != ngx_lua_shdict_conf_init(cf, &lscf)) {
-        return NGX_CONF_ERROR;
+            return NGX_CONF_ERROR;
     }
 
     value = cf->args->elts;
@@ -235,7 +249,7 @@ ngx_lua_shdict(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     cf->ctx = lscf->ctx;
 
     zone = lscf->shared_memory_add(cf, &name, (size_t) size,
-                                    &ngx_lua_shdict_module);
+                                   &ngx_lua_shdict_module);
 
     cf->ctx = old_ctx;
 

@@ -17,7 +17,7 @@ ngx_lua_ffi_shdict_find_zone(ngx_shm_zone_t **zones, u_char *name_data, size_t n
     ngx_shm_zone_t  **shm_zone;
 
     lscf = (ngx_lua_shdict_conf_t *) ngx_get_conf(ngx_cycle->conf_ctx,
-                                                   ngx_lua_shdict_module);
+                                                  ngx_lua_shdict_module);
     if (lscf == NULL) {
         return NGX_ERROR;
     }

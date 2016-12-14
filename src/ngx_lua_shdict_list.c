@@ -372,8 +372,8 @@ ngx_lua_ffi_shdict_llen(ngx_shm_zone_t *zone, u_char *key,
 {
     uint32_t                     hash;
     ngx_int_t                    rc;
-    ngx_lua_shdict_ctx_t   *ctx;
-    ngx_lua_shdict_node_t  *sd;
+    ngx_lua_shdict_ctx_t        *ctx;
+    ngx_lua_shdict_node_t       *sd;
 
     ctx = zone->data;
 
