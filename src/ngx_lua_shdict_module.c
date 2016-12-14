@@ -134,8 +134,8 @@ ngx_lua_shdict_init(ngx_shm_zone_t *shm_zone, void *data)
 }
 
 
-char *ngx_lua_shdict_conf_init(ngx_conf_t *cf,
-    ngx_lua_shdict_conf_t **lscfp)
+char *
+ngx_lua_shdict_conf_init(ngx_conf_t *cf, ngx_lua_shdict_conf_t **lscfp)
 {
     ngx_lua_shdict_conf_t *lscf;
 

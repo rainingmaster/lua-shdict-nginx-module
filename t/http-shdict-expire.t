@@ -410,7 +410,7 @@ ttl is: -1
 [error]
 
 
-=== TEST 13: expire_stale: set ttl on a expired key
+=== TEST 13: expire: set ttl on a expired key forcedly
 --- http_config eval: $::HttpConfig
 --- config
     location = /test {
@@ -430,7 +430,7 @@ ttl is: -1
             local val, flags, stale = dict:get_stale("foo")
             ngx.say(val, " ", flags, " ", stale)
 
-            local ok, stale = dict:expire_stale("foo", 10)
+            local ok, stale = dict:expire("foo", 10, true)
             if not ok then
                 ngx.say("expire err: ", stale)
             elseif ok == 0 then
@@ -454,7 +454,7 @@ bar nil false
 [error]
 
 
-=== TEST 14: expire_stale: set ttl on a nil key
+=== TEST 14: expire: set ttl on a nil key forcely
 --- http_config eval: $::HttpConfig
 --- config
     location = /test {
@@ -462,7 +462,7 @@ bar nil false
             local t = require("resty.shdict")
             local dict = t.dict
 
-            local ok, err = dict:expire_stale("foo", 10)
+            local ok, err = dict:expire("foo", 10, true)
             if not ok then
                 ngx.say("expire err: ", err)
             elseif ok == 0 then

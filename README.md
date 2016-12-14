@@ -84,7 +84,6 @@ The resulting object `dict` has the following methods:
 * [flush_expired](#flush_expired)
 * [get_keys](#get_keys)
 * [expire](#expire)
-* [expire_stale](#expire_stale)
 * [ttl](#ttl)
 
 
@@ -365,23 +364,15 @@ By default, only the first 1024 keys (if any) are returned. When the `<max_count
 
 expire
 ------------------------
-**syntax:** *ret = dict:expire(key, exptime)*
+**syntax:** *ret, stale = dict:expire(key, exptime, force?)*
 
 **context:** *init_by_lua&#42;, set_by_lua&#42;, rewrite_by_lua&#42;, access_by_lua&#42;, content_by_lua&#42;, header_filter_by_lua&#42;, body_filter_by_lua&#42;, log_by_lua&#42;, ngx.timer.&#42;, balancer_by_lua&#42;, ssl_certificate_by_lua&#42;, ssl_session_fetch_by_lua&#42;, ssl_session_store_by_lua&#42;*
 
 Set a key's time to live in seconds. The time resolution is `0.001` seconds. If the `exptime` takes the value `0` , then the item will never expire.
 
+The optional `force` argument is given `true` can set stale key' time to live forcedly, reference (get_stale)[#get_stale].
+
 `1` means expire `key` successfully, if `key` does not exist or `key` is expired, it will return `0`.
-
-[Back to TOC](#nginx-shared-dict-api-for-lua)
-
-expire_stale
-------------------------
-**syntax:** *ret, stale = dict:expire_stale(key, exptime)*
-
-**context:** *init_by_lua&#42;, set_by_lua&#42;, rewrite_by_lua&#42;, access_by_lua&#42;, content_by_lua&#42;, header_filter_by_lua&#42;, body_filter_by_lua&#42;, log_by_lua&#42;, ngx.timer.&#42;, balancer_by_lua&#42;, ssl_certificate_by_lua&#42;, ssl_session_fetch_by_lua&#42;, ssl_session_store_by_lua&#42;*
-
-Similar to the [expire](#expire) method but set the `exptime` even if the key has already expired.
 
 If `ret` equal to `1`, the 2nd returns, `stale`, indicating whether the key has expired or not.
 

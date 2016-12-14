@@ -251,7 +251,7 @@ expire:
 
 
 int
-ngx_lua_ffi_shdict_get_helper(ngx_shm_zone_t *zone, int op, u_char *key,
+ngx_lua_ffi_shdict_fetch_helper(ngx_shm_zone_t *zone, int op, u_char *key,
     size_t key_len, int *value_type, u_char **str_value_buf,
     size_t *str_value_len, double *num_value, int *user_flags,
     int *is_stale, char **errmsg)

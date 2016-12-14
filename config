@@ -46,7 +46,7 @@ else
 #define ngx_stream_lua_shared_memory_add NULL"
 fi
 
-if test -z "$include"; then
+if [ $found = 0 ]; then
     echo "$0: error: ngx_lua_shdict_module requires ngx_http_lua_module or ngx_stream_lua_module"
     exit 1
 fi

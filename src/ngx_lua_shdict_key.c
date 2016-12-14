@@ -40,7 +40,7 @@ ngx_lua_ffi_shdict_find_zone(ngx_shm_zone_t **zones, u_char *name_data, size_t n
 
 
 int
-ngx_lua_ffi_shdict_expire_helper(ngx_shm_zone_t *zone, int op, u_char *key,
+ngx_lua_ffi_shdict_expire(ngx_shm_zone_t *zone, int op, u_char *key,
     size_t key_len, int exptime, int *is_stale, char **errmsg)
 {
     uint32_t                     hash;
@@ -90,7 +90,7 @@ ngx_lua_ffi_shdict_expire_helper(ngx_shm_zone_t *zone, int op, u_char *key,
 
 
 int
-ngx_lua_ffi_shdict_ttl_helper(ngx_shm_zone_t *zone, u_char *key,
+ngx_lua_ffi_shdict_ttl(ngx_shm_zone_t *zone, u_char *key,
     size_t key_len, int *ttl, char **errmsg)
 {
     uint32_t                     hash;

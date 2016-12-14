@@ -37,11 +37,11 @@ ffi.cdef[[
     int ngx_lua_ffi_shdict_find_zone(void **zones,
         const unsigned char *name_data, size_t name_len);
         
-    int ngx_lua_ffi_shdict_expire_helper(void *zone,
+    int ngx_lua_ffi_shdict_expire(void *zone,
         int op, const unsigned char *key, size_t key_len,
         int exptime, int *is_stale, char **errmsg);
         
-    int ngx_lua_ffi_shdict_ttl_helper(void *zone,
+    int ngx_lua_ffi_shdict_ttl(void *zone,
         const unsigned char *key, size_t key_len, int *ttl,
         char **errmsg);
         
@@ -54,7 +54,7 @@ ffi.cdef[[
         int *freed, char **errmsg);
 
 
-    int ngx_lua_ffi_shdict_get_helper(void *zone, int op,
+    int ngx_lua_ffi_shdict_fetch_helper(void *zone, int op,
         const unsigned char *key, size_t key_len, int *value_type,
         unsigned char **str_value_buf, size_t *str_value_len,
         double *num_value, int *user_flags,
@@ -368,7 +368,7 @@ local function shdict_delete(zone, key)
 end
 
 
-local function shdict_expire(zone, key, exptime, op)
+local function shdict_expire(zone, key, exptime, force)
     local meta_zone = check_zone(zone)
 
     exptime = tonumber(exptime)
@@ -381,12 +381,16 @@ local function shdict_expire(zone, key, exptime, op)
         return key, key_len
     end
 
-    op = op or 0
+    local op = 0
+
+    if force then
+        op = 0x0008
+    end
 
     local is_stale = int_tmp[0]
 
-    local rc = C.ngx_lua_ffi_shdict_expire_helper(meta_zone, op, key, key_len,
-                                                  exptime * 1000, is_stale, errmsg)
+    local rc = C.ngx_lua_ffi_shdict_expire(meta_zone, op, key, key_len,
+                                           exptime * 1000, is_stale, errmsg)
 
     if rc ~= NGX_OK then
         return 0, ffi_str(errmsg[0])
@@ -400,11 +404,6 @@ local function shdict_expire(zone, key, exptime, op)
 end
 
 
-local function shdict_expire_stale(zone, key, exptime)
-    return shdict_expire(zone, key, exptime, 0x0008)
-end
-
-
 local function shdict_ttl(zone, key)
     local meta_zone = check_zone(zone)
 
@@ -415,8 +414,8 @@ local function shdict_ttl(zone, key)
     
     local ttl = int_tmp[0]
 
-    local rc = C.ngx_lua_ffi_shdict_ttl_helper(meta_zone, key,
-                                               key_len, ttl, errmsg)
+    local rc = C.ngx_lua_ffi_shdict_ttl(meta_zone, key,
+                                        key_len, ttl, errmsg)
     
     if rc ~= NGX_OK then
         return nil, ffi_str(errmsg[0])
@@ -443,10 +442,10 @@ local function shdict_fetch(zone, key, op)
     local user_flags = int_tmp[1]
     local is_stale   = int_tmp[2]
 
-    local rc = C.ngx_lua_ffi_shdict_get_helper(meta_zone, op, key,
-                                               key_len, value_type, str_value_buf,
-                                               str_value_len, num_value, user_flags,
-                                               is_stale, errmsg)
+    local rc = C.ngx_lua_ffi_shdict_fetch_helper(meta_zone, op, key,
+                                                 key_len, value_type, str_value_buf,
+                                                 str_value_len, num_value, user_flags,
+                                                 is_stale, errmsg)
     if rc ~= NGX_OK then
         return nil, ffi_str(errmsg[0])
     end
@@ -635,7 +634,6 @@ func.incr               = shdict_incr
 func.flush_expired      = shdict_flush_expired
 func.flush_all          = shdict_flush_all
 func.expire             = shdict_expire
-func.expire_stale       = shdict_expire_stale
 func.ttl                = shdict_ttl
 
 
