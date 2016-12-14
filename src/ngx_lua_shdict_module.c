@@ -153,21 +153,17 @@ ngx_lua_shdict_conf_init(ngx_conf_t *cf, ngx_lua_shdict_conf_t **lscfp)
     cf->cycle->conf_ctx[ngx_lua_shdict_module.index] = (void ***) lscf;
 
     if (NGX_HTTP_MODULE == cf->module_type) {
-
-        if (ngx_http_lua_shared_memory_add != NULL) {
-            /* http first */
-            lscf->shared_memory_add = ngx_http_lua_shared_memory_add;
-        } else {
+        /* http first */
+        lscf->shared_memory_add = ngx_http_lua_shared_memory_add;
+        if (lscf->shared_memory_add == NULL) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                                "\"ngx_http_lua_module\" load failed");
             return NGX_CONF_ERROR;
         }
     } else {
-
-        if (ngx_stream_lua_shared_memory_add != NULL) {
-            /* stream */
-            lscf->shared_memory_add = ngx_stream_lua_shared_memory_add;
-        } else {
+        /* stream */
+        lscf->shared_memory_add = ngx_stream_lua_shared_memory_add;
+        if (lscf->shared_memory_add == NULL) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                                "\"ngx_stream_lua_module\" load failed");
             return NGX_CONF_ERROR;
