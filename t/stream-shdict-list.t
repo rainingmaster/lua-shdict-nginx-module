@@ -27,9 +27,9 @@ __DATA__
 
         local len, err = dict:lpush("foo", "bar")
         if len then
-        ngx.say("push success")
+            ngx.say("push success")
         else
-        ngx.say("push err: ", err)
+            ngx.say("push err: ", err)
         end
 
         local val, err = dict:llen("foo")
@@ -64,7 +64,7 @@ nil nil
 
         local len, err = dict:lpush("foo", "bar")
         if len then
-        ngx.say("push success")
+            ngx.say("push success")
         else
         ngx.say("push err: ", err)
         end
@@ -89,7 +89,7 @@ nil value is a list
 
         local len, err = dict:lpush("foo", "bar")
         if len then
-        ngx.say("push success")
+            ngx.say("push success")
         else
         ngx.say("push err: ", err)
         end
@@ -118,7 +118,7 @@ bar nil
 
         local len, err = dict:lpush("foo", "bar")
         if len then
-        ngx.say("push success")
+            ngx.say("push success")
         else
         ngx.say("push err: ", err)
         end
@@ -147,7 +147,7 @@ bar nil
 
         local len, err = dict:lpush("foo", "bar")
         if len then
-        ngx.say("push success")
+            ngx.say("push success")
         else
         ngx.say("push err: ", err)
         end
@@ -176,7 +176,7 @@ nil value is a list
 
         local len, err = dict:lpush("foo", "bar")
         if len then
-        ngx.say("push success")
+            ngx.say("push success")
         else
         ngx.say("push err: ", err)
         end
@@ -205,7 +205,7 @@ nil nil
 
         local len, err = dict:lpush("foo", "bar")
         if len then
-        ngx.say("push success")
+            ngx.say("push success")
         else
         ngx.say("push err: ", err)
         end
@@ -234,7 +234,7 @@ nil value is a list
 
         local len, err = dict:lpush("foo", "bar")
         if len then
-        ngx.say("push success")
+            ngx.say("push success")
         else
         ngx.say("push err: ", err)
         end
@@ -259,7 +259,7 @@ key: foo
 
         local ok, err = dict:set("foo", "bar")
         if ok then
-        ngx.say("set success")
+            ngx.say("set success")
         else
         ngx.say("set err: ", err)
         end
@@ -288,7 +288,7 @@ bar nil
 
         local ok, err = dict:set("foo", "bar")
         if ok then
-        ngx.say("set success")
+            ngx.say("set success")
         else
         ngx.say("set err: ", err)
         end
@@ -317,7 +317,7 @@ bar nil
 
         local ok, err = dict:set("foo", "bar")
         if ok then
-        ngx.say("set success")
+            ngx.say("set success")
         else
         ngx.say("set err: ", err)
         end
