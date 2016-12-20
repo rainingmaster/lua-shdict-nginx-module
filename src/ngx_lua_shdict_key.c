@@ -112,10 +112,12 @@ ngx_lua_ffi_shdict_ttl(ngx_shm_zone_t *zone, u_char *key,
 
     if (rc == NGX_DECLINED || rc == NGX_DONE) {
         *ttl = -2;
+
     } else { /* rc == NGX_OK */
 
         if (sd->expires == 0) {
             *ttl = -1;
+
         } else {
             tp = ngx_timeofday();
             now = (uint64_t) tp->sec * 1000 + tp->msec;
