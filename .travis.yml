@@ -47,6 +47,12 @@ env:
     - NGINX_VERSION=1.11.2
       BUILD_SH=build-only-http.sh
       TEST_CASE=t/http-*
+    - NGINX_VERSION=1.9.15
+      BUILD_SH=build-only-stream.sh
+      TEST_CASE=t/stream-*
+    - NGINX_VERSION=1.11.2
+      BUILD_SH=build-only-stream.sh
+      TEST_CASE=t/stream-*
 
 install:
   - echo $HOME
@@ -54,8 +60,9 @@ install:
   - git clone https://github.com/openresty/openresty.git ../openresty
   - git clone https://github.com/openresty/no-pool-nginx.git ../no-pool-nginx
   - git clone https://github.com/simpl/ngx_devel_kit.git ../ndk-nginx-module
-  - git clone https://github.com/openresty/test-nginx.git
+  - git clone -b without_ngx_http_lua_dependent https://github.com/rainingmaster/test-nginx.git
   - git clone -b v2.1-agentzh https://github.com/openresty/luajit2.git
+  - git clone https://github.com/rainingmaster/socket-get-module.git ../socket-get-module
   - git clone https://github.com/openresty/lua-nginx-module.git ../http-lua-nginx-module
   - git clone -b shm_based https://github.com/rainingmaster/stream-lua-nginx-module.git ../stream-lua-nginx-module
   - git clone https://github.com/openresty/nginx-eval-module.git ../eval-nginx-module
