@@ -27,7 +27,7 @@ ngx-build $force $version \
           --add-module=$ngx_redis_path \
           --add-module=$root/../echo-nginx-module \
           --add-module=$root $opts \
-          --add-module=$root/../http-lua-nginx-module \
+          --add-module=$root/../lua-nginx-module \
           --with-select_module \
           --with-poll_module \
           --with-debug
