@@ -396,7 +396,7 @@ local function shdict_expire(zone, key, exptime, force)
         return 0, ffi_str(errmsg[0])
     end
 
-    if op == 0 then
+    if force == 0 then
         return 1
     else
         return 1, is_stale[0] == 1
@@ -474,7 +474,7 @@ local function shdict_fetch(zone, key, get_stale)
         return error("unknown value type: " .. typ)
     end
 
-    if op == 0 then
+    if get_stale == 0 then
         if flags == 0 then
             return val
         end
