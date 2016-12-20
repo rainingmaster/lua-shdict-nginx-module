@@ -932,7 +932,7 @@ nil nil
         local dogs = t.dogs
 
         for i=1,100 do
-        dogs:set(tostring(i), "x", 1)
+            dogs:set(tostring(i), "x", 1)
         end
 
         dogs:set("bah", "y", 0)
@@ -1133,7 +1133,7 @@ bar
         local t = require("resty.shdict")
         local dogs = t.dogs
         for i=1,2048 do
-        dogs:set(tostring(i), i)
+            dogs:set(tostring(i), i)
         end
         local keys = dogs:get_keys()
         ngx.say(#keys)
@@ -1152,7 +1152,7 @@ bar
         local t = require("resty.shdict")
         local dogs = t.dogs
         for i=1,2048 do
-        dogs:set(tostring(i), i)
+            dogs:set(tostring(i), i)
         end
         local keys = dogs:get_keys(0)
         ngx.say(#keys)
