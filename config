@@ -1,4 +1,4 @@
-ngx_http_lua_keyword="http-lua-nginx-module"
+ngx_http_lua_keyword="lua-nginx-module"
 ngx_stream_lua_keyword="stream-lua-nginx-module"
 
 
