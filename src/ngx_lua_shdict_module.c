@@ -203,11 +203,13 @@ ngx_lua_shdict(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     if (cf->module_type != NGX_HTTP_MODULE &&
         cf->module_type != NGX_STREAM_MODULE) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "\"%s\" directive is not allowed here", cmd->name.data);
+                               "\"%s\" directive is not allowed here",
+                               cmd->name.data);
             return NGX_CONF_ERROR;
     }
 
-    lscf = (ngx_lua_shdict_conf_t *)cf->cycle->conf_ctx[ngx_lua_shdict_module.index];
+    lscf = (ngx_lua_shdict_conf_t *)ngx_get_conf(cf->cycle->conf_ctx,
+                                                 ngx_lua_shdict_module);
     if (lscf == NULL &&
         NGX_CONF_OK != ngx_lua_shdict_conf_init(cf, &lscf)) {
             return NGX_CONF_ERROR;

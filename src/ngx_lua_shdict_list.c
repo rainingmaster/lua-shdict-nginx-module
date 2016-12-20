@@ -204,7 +204,7 @@ push_node:
 
     ngx_memcpy(lnode->data, str_value_buf, str_value_len);
 
-    if (flags == NGX_LUA_SHDICT_LEFT) {
+    if (flags) {
         ngx_queue_insert_head(queue, &lnode->queue);
 
     } else {
@@ -273,7 +273,7 @@ ngx_lua_ffi_shdict_pop_helper(ngx_shm_zone_t *zone, u_char *key,
 
     queue = ngx_lua_shdict_get_list_head(sd, key_len);
 
-    if (flags == NGX_LUA_SHDICT_LEFT) {
+    if (flags) {
         queue = ngx_queue_head(queue);
 
     } else {

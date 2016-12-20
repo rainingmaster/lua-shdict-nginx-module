@@ -251,7 +251,7 @@ expire:
 
 
 int
-ngx_lua_ffi_shdict_fetch_helper(ngx_shm_zone_t *zone, int op, u_char *key,
+ngx_lua_ffi_shdict_fetch_helper(ngx_shm_zone_t *zone, int stale, u_char *key,
     size_t key_len, int *value_type, u_char **str_value_buf,
     size_t *str_value_len, double *num_value, int *user_flags,
     int *is_stale, char **errmsg)
@@ -270,19 +270,19 @@ ngx_lua_ffi_shdict_fetch_helper(ngx_shm_zone_t *zone, int op, u_char *key,
 
     ngx_shmtx_lock(&ctx->shpool->mutex);
 
-    if (! (op & NGX_LUA_SHDICT_STALE)) {
+    if (!get_stale) {
         ngx_lua_shdict_expire(ctx, 1);
     }
 
     rc = ngx_lua_shdict_lookup(zone, hash, key, key_len, &sd);
 
-    if (rc == NGX_DECLINED || (rc == NGX_DONE && ! (op & NGX_LUA_SHDICT_STALE))) {
+    if (rc == NGX_DECLINED || (rc == NGX_DONE && !get_stale)) {
         ngx_shmtx_unlock(&ctx->shpool->mutex);
         *value_type = LUA_TNIL;
         return NGX_OK;
     }
 
-    /* rc == NGX_OK || (rc == NGX_DONE && (op & NGX_LUA_SHDICT_STALE)) */
+    /* rc == NGX_OK || (rc == NGX_DONE && get_stale) */
 
     *value_type = sd->value_type;
 
@@ -367,7 +367,7 @@ ngx_lua_ffi_shdict_fetch_helper(ngx_shm_zone_t *zone, int op, u_char *key,
 
     ngx_shmtx_unlock(&ctx->shpool->mutex);
 
-    if (op & NGX_LUA_SHDICT_STALE) {
+    if (get_stale) {
         *is_stale = (rc == NGX_DONE);
         return NGX_OK;
     }

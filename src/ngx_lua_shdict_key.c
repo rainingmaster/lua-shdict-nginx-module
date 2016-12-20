@@ -8,7 +8,8 @@
 
 
 int
-ngx_lua_ffi_shdict_find_zone(ngx_shm_zone_t **zones, u_char *name_data, size_t name_len)
+ngx_lua_ffi_shdict_find_zone(ngx_shm_zone_t **zones, u_char *name_data,
+    size_t name_len)
 {
     ngx_str_t                         *name;
     ngx_lua_shdict_conf_t             *lscf;
@@ -40,7 +41,7 @@ ngx_lua_ffi_shdict_find_zone(ngx_shm_zone_t **zones, u_char *name_data, size_t n
 
 
 int
-ngx_lua_ffi_shdict_expire(ngx_shm_zone_t *zone, int op, u_char *key,
+ngx_lua_ffi_shdict_expire(ngx_shm_zone_t *zone, int force, u_char *key,
     size_t key_len, int exptime, int *is_stale, char **errmsg)
 {
     uint32_t                     hash;
@@ -55,19 +56,19 @@ ngx_lua_ffi_shdict_expire(ngx_shm_zone_t *zone, int op, u_char *key,
 
     ngx_shmtx_lock(&ctx->shpool->mutex);
 
-    if (! (op & NGX_LUA_SHDICT_STALE)) {
+    if (!force) {
         ngx_lua_shdict_expire(ctx, 1);
     }
 
     rc = ngx_lua_shdict_lookup(zone, hash, key, key_len, &sd);
 
-    if (rc == NGX_DECLINED || (rc == NGX_DONE && ! (op & NGX_LUA_SHDICT_STALE))) {
+    if (rc == NGX_DECLINED || (rc == NGX_DONE && !force)) {
         ngx_shmtx_unlock(&ctx->shpool->mutex);
         *errmsg = "not found";
         return NGX_DECLINED;
     }
 
-    /* rc == NGX_OK || (rc == NGX_DONE && (op & NGX_LUA_SHDICT_STALE)) */
+    /* rc == NGX_OK || (rc == NGX_DONE && force) */
 
     if (exptime > 0) {
         tp = ngx_timeofday();
@@ -80,7 +81,7 @@ ngx_lua_ffi_shdict_expire(ngx_shm_zone_t *zone, int op, u_char *key,
 
     ngx_shmtx_unlock(&ctx->shpool->mutex);
 
-    if (op & NGX_LUA_SHDICT_STALE) {
+    if (force) {
         *is_stale = (rc == NGX_DONE);
         return NGX_OK;
     }

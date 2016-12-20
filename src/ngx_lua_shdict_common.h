@@ -87,11 +87,6 @@ typedef struct {
 #define NGX_LUA_SHDICT_ADD         0x0001
 #define NGX_LUA_SHDICT_REPLACE     0x0002
 #define NGX_LUA_SHDICT_SAFE_STORE  0x0004
-#define NGX_LUA_SHDICT_STALE       0x0008
-
-
-#define NGX_LUA_SHDICT_LEFT        0x0001
-#define NGX_LUA_SHDICT_RIGHT       0x0002
 
 
 enum {
@@ -104,7 +99,8 @@ enum {
 
 
 typedef ngx_shm_zone_t* (*ngx_shm_add_pt) \
-                        (ngx_conf_t *cf, ngx_str_t *name, size_t size, void *tag);
+                        (ngx_conf_t *cf, ngx_str_t *name,
+                         size_t size, void *tag);
 
 
 typedef struct {
