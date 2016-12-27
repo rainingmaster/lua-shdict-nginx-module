@@ -135,7 +135,8 @@ ngx_lua_shdict_init(ngx_shm_zone_t *shm_zone, void *data)
 
 
 char *
-ngx_lua_shdict_conf_init(ngx_conf_t *cf, ngx_lua_shdict_conf_t **lscfp)
+ngx_lua_shdict_conf_init(ngx_conf_t *cf, ngx_lua_shdict_conf_t **lscfp,
+    ngx_shm_add_pt shared_memory_add)
 {
     ngx_lua_shdict_conf_t *lscf;
 
@@ -152,23 +153,8 @@ ngx_lua_shdict_conf_init(ngx_conf_t *cf, ngx_lua_shdict_conf_t **lscfp)
 
     cf->cycle->conf_ctx[ngx_lua_shdict_module.index] = (void ***) lscf;
 
-    if (NGX_HTTP_MODULE == cf->module_type) {
-        /* http first */
-        lscf->shared_memory_add = ngx_http_lua_shared_memory_add;
-        if (lscf->shared_memory_add == NULL) {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "\"ngx_http_lua_module\" load failed");
-            return NGX_CONF_ERROR;
-        }
-    } else {
-        /* stream */
-        lscf->shared_memory_add = ngx_stream_lua_shared_memory_add;
-        if (lscf->shared_memory_add == NULL) {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "\"ngx_stream_lua_module\" load failed");
-            return NGX_CONF_ERROR;
-        }
-    }
+
+    lscf->shared_memory_add = shared_memory_add;
 
     lscf->shdict_zones = ngx_palloc(cf->pool, sizeof(ngx_array_t));
     if (lscf->shdict_zones == NULL) {
@@ -199,19 +185,38 @@ ngx_lua_shdict(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_lua_shdict_ctx_t         *ctx;
     ssize_t                       size;
     void                         *old_ctx;
+    ngx_shm_add_pt                shared_memory_add;
 
-    if (cf->module_type != NGX_HTTP_MODULE &&
-        cf->module_type != NGX_STREAM_MODULE) {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "\"%s\" directive is not allowed here",
-                               cmd->name.data);
-            return NGX_CONF_ERROR;
+#if defined(NGX_HAVE_HTTP_LUA_MODULE) && \
+    defined(NGX_HAVE_STREAM_LUA_MODULE)
+    if (cf->module_type == NGX_HTTP_MODULE) {
+        shared_memory_add = ngx_http_lua_shared_memory_add;
+    } else if (cf->module_type == NGX_STREAM_MODULE) {
+        shared_memory_add = ngx_stream_lua_shared_memory_add;
+#elif defined(NGX_HAVE_HTTP_LUA_MODULE)
+    if (cf->module_type == NGX_HTTP_MODULE) {
+        shared_memory_add = ngx_http_lua_shared_memory_add;
+#elif defined(NGX_HAVE_STREAM_LUA_MODULE)
+    if (cf->module_type == NGX_STREAM_MODULE) {
+        shared_memory_add = ngx_stream_lua_shared_memory_add;
+#else
+    if (1) {
+       ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                          "\"ngx_http_lua_module\" or ",
+                          "\"ngx_stream_lua_module\" is required");
+       return NGX_CONF_ERROR;
+#endif
+    } else {
+       ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                          "\"%s\" directive is not allowed here",
+                          cmd->name.data);
+       return NGX_CONF_ERROR;
     }
 
     lscf = (ngx_lua_shdict_conf_t *)ngx_get_conf(cf->cycle->conf_ctx,
                                                  ngx_lua_shdict_module);
     if (lscf == NULL &&
-        NGX_CONF_OK != ngx_lua_shdict_conf_init(cf, &lscf)) {
+        NGX_CONF_OK != ngx_lua_shdict_conf_init(cf, &lscf, shared_memory_add)) {
             return NGX_CONF_ERROR;
     }
 

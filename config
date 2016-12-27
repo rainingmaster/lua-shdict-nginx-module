@@ -1,54 +1,3 @@
-ngx_http_lua_keyword="lua-nginx-module"
-ngx_stream_lua_keyword="stream-lua-nginx-module"
-
-
-found=0
-define=
-
-if echo $NGX_ADDONS | grep $ngx_http_lua_keyword > /dev/null; then
-    if [ $HTTP = YES ]; then
-        found=1
-        define="$define
-#define _NGX_HTTP_LUA_SHDICT_ 1"
-    fi
-else
-    if [ $HTTP = YES ]; then
-        define="$define
-#define _NGX_HTTP_SHDICT_ 1"
-    fi
-fi
-
-
-if echo $NGX_ADDONS | grep $ngx_stream_lua_keyword > /dev/null; then
-    if [ $STREAM = YES ]; then
-        found=1
-        define="$define
-#define _NGX_STREAM_LUA_SHDICT_ 1"
-    fi
-else
-    if [ $STREAM = YES ]; then
-        define="$define
-#define _NGX_STREAM_SHDICT_ 1"
-    fi
-fi
-
-
-if [ $found = 0 ]; then
-    echo "$0: error: ngx_lua_shdict_module requires ngx_http_lua_module or ngx_stream_lua_module"
-    exit 1
-fi
-
-
-sudo echo "#ifndef _NGX_LUA_SHDICT_INCULDE_H_
-#define _NGX_LUA_SHDICT_INCULDE_H_" > $ngx_addon_dir/src/ngx_lua_shdict_include.h
-sudo echo "$define"  >> $ngx_addon_dir/src/ngx_lua_shdict_include.h
-sudo echo "
-#endif /* _NGX_LUA_SHDICT_INCULDE_H_ */
-" >> $ngx_addon_dir/src/ngx_lua_shdict_include.h
-
-cat $ngx_addon_dir/src/ngx_lua_shdict_include.h
-
-
 #a fake core module
 CORE_MODULES="$CORE_MODULES ngx_lua_shdict_module"
 
@@ -59,5 +8,4 @@ NGX_ADDON_SRCS="$NGX_ADDON_SRCS \
                 $ngx_addon_dir/src/ngx_lua_shdict_string.c \
                 $ngx_addon_dir/src/ngx_lua_shdict_list.c"
 NGX_ADDON_DEPS="$NGX_ADDON_DEPS \
-                $ngx_addon_dir/src/ngx_lua_shdict_include.h \
                 $ngx_addon_dir/src/ngx_lua_shdict_common.h"
