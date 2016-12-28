@@ -395,3 +395,135 @@ expire success
 ttl less than 321
 --- no_error_log
 [error]
+
+
+=== TEST 7: two shdict
+--- http_config
+    lua_package_path "$TEST_NGINX_LUA_PACK_PATH";
+    lua_shared_mem dict2 900k;
+    server {
+        listen 1986;
+        location = / {
+            content_by_lua_block {
+                local t = require("resty.shdict")
+                local dict1 = t.dict1
+                local dict2 = t.dict2
+
+                local ret, err = dict1:get("foo")
+                if not ret then
+                    ngx.say("get err: ", err)
+                end
+
+                local ret2, err = dict2:get("hello")
+                if not ret2 then
+                    ngx.say("get err: ", err)
+                end
+
+                ngx.say("get: ", ret, " and ", ret2)
+            }
+        }
+    }
+--- stream_config
+    lua_package_path "$TEST_NGINX_LUA_PACK_PATH";
+    lua_shared_mem dict1 900k;
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dict1 = t.dict1
+        local dict2 = t.dict2
+
+        dict1:set("foo", "bar")
+        dict2:set("hello", "world")
+
+        local sock = ngx.socket.tcp()
+        local ok, err = sock:connect("127.0.0.1", 1986)
+        local req = "GET / HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n"
+        local bytes, err = sock:send(req)
+        if not bytes then
+            ngx.say("failed to send stream request: ", err)
+            return
+        end
+
+        local line, err, partial = sock:receive("*a")
+        ok = string.find(line, "?*\r\n13\r\nget: bar and world")
+        if not ok then
+            ngx.say("failed: " .. line)
+        else
+            ngx.say("get success")
+        end
+    }
+--- stream_response
+get success
+--- no_error_log
+[error]
+
+
+=== TEST 8: oper in init_by_lua
+--- http_config
+    lua_package_path "$TEST_NGINX_LUA_PACK_PATH";
+    lua_shared_mem stream_dict 900k;
+    init_by_lua_block {
+        local t = require("resty.shdict")
+        local http_dict = t.http_dict
+
+        http_dict:set("foo", "bar")
+    }
+    server {
+        listen 1986;
+        location = / {
+            content_by_lua_block {
+                local t = require("resty.shdict")
+                local stream_dict = t.stream_dict
+
+                local ret, err = stream_dict:get("hello")
+                if ret then
+                    ngx.say("stream get: ", ret)
+                else
+                    ngx.say("stream get err: ", err)
+                end
+            }
+        }
+    }
+--- stream_config
+    lua_package_path "$TEST_NGINX_LUA_PACK_PATH";
+    lua_shared_mem http_dict 900k;
+    init_by_lua_block {
+        local t = require("resty.shdict")
+        local stream_dict = t.stream_dict
+
+        stream_dict:set("hello", "world")
+    }
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local http_dict = t.http_dict
+
+        local ret, err = http_dict:get("foo")
+        if ret then
+            ngx.say("http get: ", ret)
+        else
+            ngx.say("http get err: ", err)
+        end
+
+        local sock = ngx.socket.tcp()
+        local ok, err = sock:connect("127.0.0.1", 1986)
+        local req = "GET / HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n"
+        local bytes, err = sock:send(req)
+        if not bytes then
+            ngx.say("failed to send stream request: ", err)
+            return
+        end
+
+        local line, err, partial = sock:receive("*a")
+        ok = string.find(line, "?*\r\n12\r\nstream get: world")
+        if not ok then
+            ngx.say("failed: " .. line)
+        else
+            ngx.say("stream get success")
+        end
+    }
+--- stream_response
+http get: bar
+stream get success
+--- no_error_log
+[error]

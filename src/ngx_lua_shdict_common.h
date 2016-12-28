@@ -61,7 +61,7 @@ typedef struct {
 
 
 typedef struct {
-    ngx_lua_shdict_shctx_t  *sh;
+    ngx_lua_shdict_shctx_t       *sh;
     ngx_slab_pool_t              *shpool;
     ngx_str_t                     name;
     ngx_log_t                    *log;
@@ -82,14 +82,7 @@ enum {
 };
 
 
-typedef ngx_shm_zone_t* (*ngx_shm_add_pt) \
-                        (ngx_conf_t *cf, ngx_str_t *name,
-                         size_t size, void *tag);
-
-
 typedef struct {
-    void            *ctx;
-    ngx_shm_add_pt   shared_memory_add;
     ngx_array_t     *shdict_zones;
 } ngx_lua_shdict_conf_t;
 
