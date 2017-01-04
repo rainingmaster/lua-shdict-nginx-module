@@ -34,29 +34,19 @@ __DATA__
             end
 
             local val, err = dict:ttl("foo")
-            if val then
-                ngx.say("ttl is: ", val)
-            else
-                ngx.say("ttl err: ", err)
-            end
+            ngx.say("ttl is: ", val)
 
             local ok, err = dict:expire("foo", 10)
-            if ok then
-                if ok == 0 then
-                    ngx.say("expire key not exist")
-                else
-                    ngx.say("expire success: ", ok)
-                end
-            else
+            if not ok then
                 ngx.say("expire err: ", err)
+            elseif ok == 0 then
+                ngx.say("expire key not exist")
+            else
+                ngx.say("expire success: ", ok)
             end
 
             local val, err = dict:ttl("foo")
-            if val then
-                ngx.say("ttl is: ", val)
-            else
-                ngx.say("ttl err: ", err)
-            end
+            ngx.say("ttl is: ", val)
         }
     }
 --- request
@@ -70,7 +60,7 @@ ttl is: 10
 [error]
 
 
-=== TEST 2: ttl operation on list type
+=== TEST 2: ttl: get ttl on a list
 --- http_config eval: $::HttpConfig
 --- config
     location = /test {
@@ -86,19 +76,33 @@ ttl is: 10
             end
 
             local val, err = dict:ttl("list")
-            ngx.say(val, " ", err)
+            ngx.say("ttl is: ", val)
+
+            local ok, err = dict:expire("list", 10)
+            if not ok then
+                ngx.say("expire err: ", err)
+            elseif ok == 0 then
+                ngx.say("expire key not exist")
+            else
+                ngx.say("expire success: ", ok)
+            end
+
+            val, err = dict:ttl("list")
+            ngx.say("ttl is: ", val)
         }
     }
 --- request
 GET /test
 --- response_body
 push success
-nil value is a list
+ttl is: -1
+expire success: 1
+ttl is: 10
 --- no_error_log
 [error]
 
 
-=== TEST 3: expire operation on list type
+=== TEST 3: expire: set ttl on a list
 --- http_config eval: $::HttpConfig
 --- config
     location = /test {
@@ -121,12 +125,12 @@ nil value is a list
 GET /test
 --- response_body
 push success
-0 value is a list
+1 nil
 --- no_error_log
 [error]
 
 
-=== TEST 4: expire operation with negative number
+=== TEST 4: expire: set ttl by negative number
 --- http_config eval: $::HttpConfig
 --- config
     location = /test {
@@ -137,14 +141,12 @@ push success
             local ret, err = dict:set("foo", "bar", 100)
 
             local ok, err = dict:expire("foo", -10)
-            if ok then
-                if ok == 0 then
-                    ngx.say("expire key not exist")
-                else
-                    ngx.say("expire success: ", ok)
-                end
-            else
+            if not ok then
                 ngx.say("expire err: ", err)
+            elseif ok == 0 then
+                ngx.say("expire key not exist")
+            else
+                ngx.say("expire success: ", ok)
             end
         }
     }
@@ -156,7 +158,7 @@ GET /test
 bad "exptime" argument
 
 
-=== TEST 5: expire operation with illegal parameter
+=== TEST 5: expire: set ttl by illegal parameter
 --- http_config eval: $::HttpConfig
 --- config
     location = /test {
@@ -167,14 +169,12 @@ bad "exptime" argument
             local ret, err = dict:set("foo", "bar", 100)
 
             local ok, err = dict:expire("foo", "bar")
-            if ok then
-                if ok == 0 then
-                    ngx.say("expire key not exist")
-                else
-                    ngx.say("expire success: ", ok)
-                end
-            else
+            if not ok then
                 ngx.say("expire err: ", err)
+            elseif ok == 0 then
+                ngx.say("expire key not exist")
+            else
+                ngx.say("expire success: ", ok)
             end
         }
     }
@@ -186,15 +186,13 @@ GET /test
 bad "exptime" argument
 
 
-=== TEST 6: ttl operation on expired key
+=== TEST 6: ttl: get ttl on a expired key
 --- http_config eval: $::HttpConfig
 --- config
     location = /test {
         content_by_lua_block {
             local t = require("resty.shdict")
             local dict = t.dict
-
-            dict:flush_all()
 
             local ret, err = dict:set("foo", "bar", 0.01)
             if ret then
@@ -206,11 +204,7 @@ bad "exptime" argument
             ngx.sleep(0.02)
 
             local val, err = dict:ttl("foo")
-            if val then
-                ngx.say("ttl is: ", val)
-            else
-                ngx.say("ttl err: ", err)
-            end
+            ngx.say("ttl is: ", val)
         }
     }
 --- request
@@ -222,7 +216,7 @@ ttl is: -2
 [error]
 
 
-=== TEST 7: ttl operation on nonexistent key
+=== TEST 7: ttl: get ttl on nil key
 --- http_config eval: $::HttpConfig
 --- config
     location = /test {
@@ -230,14 +224,8 @@ ttl is: -2
             local t = require("resty.shdict")
             local dict = t.dict
 
-            dict:flush_all()
-
             local val, err = dict:ttl("foo")
-            if val then
-                ngx.say("ttl is: ", val)
-            else
-                ngx.say("ttl err: ", err)
-            end
+            ngx.say("ttl is: ", val)
         }
     }
 --- request
@@ -248,15 +236,13 @@ ttl is: -2
 [error]
 
 
-=== TEST 8: ttl operation on no expiration time key
+=== TEST 8: ttl: get ttl on a key exists but has no associated expire
 --- http_config eval: $::HttpConfig
 --- config
     location = /test {
         content_by_lua_block {
             local t = require("resty.shdict")
             local dict = t.dict
-
-            dict:flush_all()
 
             local ret, err = dict:set("foo", "bar")
             if ret then
@@ -266,11 +252,7 @@ ttl is: -2
             end
 
             local val, err = dict:ttl("foo")
-            if val then
-                ngx.say("ttl is: ", val)
-            else
-                ngx.say("ttl err: ", err)
-            end
+            ngx.say("ttl is: ", val)
         }
     }
 --- request
@@ -282,15 +264,13 @@ ttl is: -1
 [error]
 
 
-=== TEST 9: expire operation on expired key
+=== TEST 9: expire: set ttl on a expired key
 --- http_config eval: $::HttpConfig
 --- config
     location = /test {
         content_by_lua_block {
             local t = require("resty.shdict")
             local dict = t.dict
-
-            dict:flush_all()
 
             local ret, err = dict:set("foo", "bar", 0.01)
             if ret then
@@ -302,14 +282,12 @@ ttl is: -1
             ngx.sleep(0.02)
 
             local ok, err = dict:expire("foo", 10)
-            if ok then
-                if ok == 0 then
-                    ngx.say("expire key not exist")
-                else
-                    ngx.say("expire success: ", ok)
-                end
-            else
+            if not ok then
                 ngx.say("expire err: ", err)
+            elseif ok == 0 then
+                ngx.say("expire key not exist")
+            else
+                ngx.say("expire success: ", ok)
             end
         }
     }
@@ -322,7 +300,7 @@ expire key not exist
 [error]
 
 
-=== TEST 10: expire operation on nonexistent key
+=== TEST 10: expire: set ttl on a nil key
 --- http_config eval: $::HttpConfig
 --- config
     location = /test {
@@ -330,17 +308,13 @@ expire key not exist
             local t = require("resty.shdict")
             local dict = t.dict
 
-            dict:flush_all()
-
             local ok, err = dict:expire("foo", 10)
-            if ok then
-                if ok == 0 then
-                    ngx.say("expire key not exist")
-                else
-                    ngx.say("expire success: ", ok)
-                end
-            else
+            if not ok then
                 ngx.say("expire err: ", err)
+            elseif ok == 0 then
+                ngx.say("expire key not exist")
+            else
+                ngx.say("expire success: ", ok)
             end
         }
     }
@@ -352,15 +326,13 @@ expire key not exist
 [error]
 
 
-=== TEST 11: expire operation on no expiration time key
+=== TEST 11: expire: get ttl on a key exists but has no associated expire
 --- http_config eval: $::HttpConfig
 --- config
     location = /test {
         content_by_lua_block {
             local t = require("resty.shdict")
             local dict = t.dict
-
-            dict:flush_all()
 
             local ret, err = dict:set("foo", "bar")
             if ret then
@@ -370,29 +342,19 @@ expire key not exist
             end
 
             local val, err = dict:ttl("foo")
-            if val then
-                ngx.say("ttl is: ", val)
-            else
-                ngx.say("ttl err: ", err)
-            end
+            ngx.say("ttl is: ", val)
 
             local ok, err = dict:expire("foo", 10)
-            if ok then
-                if ok == 0 then
-                    ngx.say("expire key not exist")
-                else
-                    ngx.say("expire success: ", ok)
-                end
-            else
+            if not ok then
                 ngx.say("expire err: ", err)
+            elseif ok == 0 then
+                ngx.say("expire key not exist")
+            else
+                ngx.say("expire success: ", ok)
             end
 
             local val, err = dict:ttl("foo")
-            if val then
-                ngx.say("ttl is: ", val)
-            else
-                ngx.say("ttl err: ", err)
-            end
+            ngx.say("ttl is: ", val)
         }
     }
 --- request
@@ -406,15 +368,13 @@ ttl is: 10
 [error]
 
 
-=== TEST 11: set a key never expire by expire
+=== TEST 12: expire: set a key never expired by expire
 --- http_config eval: $::HttpConfig
 --- config
     location = /test {
         content_by_lua_block {
             local t = require("resty.shdict")
             local dict = t.dict
-
-            dict:flush_all()
 
             local ret, err = dict:set("foo", "bar", 10)
             if ret then
@@ -424,29 +384,19 @@ ttl is: 10
             end
 
             local val, err = dict:ttl("foo")
-            if val then
-                ngx.say("ttl is: ", val)
-            else
-                ngx.say("ttl err: ", err)
-            end
+            ngx.say("ttl is: ", val)
 
             local ok, err = dict:expire("foo", 0)
-            if ok then
-                if ok == 0 then
-                    ngx.say("expire key not exist")
-                else
-                    ngx.say("expire success: ", ok)
-                end
-            else
+            if not ok then
                 ngx.say("expire err: ", err)
+            elseif ok == 0 then
+                ngx.say("expire key not exist")
+            else
+                ngx.say("expire success: ", ok)
             end
 
             local val, err = dict:ttl("foo")
-            if val then
-                ngx.say("ttl is: ", val)
-            else
-                ngx.say("ttl err: ", err)
-            end
+            ngx.say("ttl is: ", val)
         }
     }
 --- request
@@ -456,5 +406,75 @@ set success
 ttl is: 10
 expire success: 1
 ttl is: -1
+--- no_error_log
+[error]
+
+
+=== TEST 13: expire: set ttl on a expired key forcedly
+--- http_config eval: $::HttpConfig
+--- config
+    location = /test {
+        content_by_lua_block {
+            local t = require("resty.shdict")
+            local dict = t.dict
+
+            local ret, err = dict:set("foo", "bar", 00.1)
+            if ret then
+                ngx.say("set success")
+            else
+                ngx.say("set err: ", err)
+            end
+            
+            ngx.sleep(1)
+
+            local val, flags, stale = dict:get_stale("foo")
+            ngx.say(val, " ", flags, " ", stale)
+
+            local ok, stale = dict:expire("foo", 10, true)
+            if not ok then
+                ngx.say("expire err: ", stale)
+            elseif ok == 0 then
+                ngx.say("expire key not exist")
+            else
+                ngx.say("expire success: ", ok, " ", stale)
+            end
+
+            local val, flags, stale = dict:get_stale("foo")
+            ngx.say(val, " ", flags, " ", stale)
+        }
+    }
+--- request
+GET /test
+--- response_body
+set success
+bar nil true
+expire success: 1 true
+bar nil false
+--- no_error_log
+[error]
+
+
+=== TEST 14: expire: set ttl on a nil key forcely
+--- http_config eval: $::HttpConfig
+--- config
+    location = /test {
+        content_by_lua_block {
+            local t = require("resty.shdict")
+            local dict = t.dict
+
+            local ok, err = dict:expire("foo", 10, true)
+            if not ok then
+                ngx.say("expire err: ", err)
+            elseif ok == 0 then
+                ngx.say("expire key not exist")
+            else
+                ngx.say("expire success: ", ok)
+            end
+        }
+    }
+--- request
+GET /test
+--- response_body
+expire key not exist
 --- no_error_log
 [error]

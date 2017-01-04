@@ -1,11 +1,11 @@
 # vim:set ft= ts=4 sw=4 et fdm=marker:
 
-use Test::Nginx::Socket::Lua;
+use Test::Nginx::Socket::Lua::Stream;
 use Cwd qw(cwd);
 
 my $pwd = cwd();
 
-our $HttpConfig = qq{
+our $StreamConfig = qq{
     lua_package_path "$pwd/t/lib/?.lua;$pwd/lib/?.lua;;";
     lua_shared_mem cats 20k;
     lua_shared_mem bigcats 25k;
@@ -31,55 +31,51 @@ run_tests();
 __DATA__
 
 === TEST 1: merge 2 single-page free blocks (forcibly evicted, merge forward)
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local cats = t.cats
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local cats = t.cats
 
-            local function check_key(key)
-                local res, err = cats:get(key)
-                if res then
-                    ngx.say("found ", key, ": ", #res)
-                else
-                    if not err then
-                        ngx.say(key, " not found")
-                    else
-                        ngx.say("failed to fetch key: ", err)
-                    end
-                end
+        local function check_key(key)
+        local res, err = cats:get(key)
+        if res then
+                ngx.say("found ", key, ": ", #res)
+        else
+            if not err then
+                ngx.say(key, " not found")
+            else
+                ngx.say("failed to fetch key: ", err)
             end
+        end
+        end
 
-            local function set_key(key, value)
-                local ok, err, force = cats:set(key, value)
-                if ok then
-                    ngx.print("successfully set ", key)
-                    if force then
-                        ngx.say(" with force.")
-                    else
-                        ngx.say(".")
-                    end
-                else
-                    ngx.say("failed to set ", key, ": ", err)
-                end
+        local function set_key(key, value)
+        local ok, err, force = cats:set(key, value)
+        if ok then
+            ngx.print("successfully set ", key)
+            if force then
+                ngx.say(" with force.")
+            else
+                ngx.say(".")
             end
+        else
+            ngx.say("failed to set ", key, ": ", err)
+        end
+        end
 
-            for i = 1, 2 do
-                set_key("foo", string.rep("a", 4000))
-                set_key("bar", string.rep("b", 4001))
-                set_key("baz", string.rep("c", 8102))
+        for i = 1, 2 do
+            set_key("foo", string.rep("a", 4000))
+            set_key("bar", string.rep("b", 4001))
+            set_key("baz", string.rep("c", 8102))
 
-                check_key("foo")
-                check_key("bar")
-                check_key("baz")
-            end
+            check_key("foo")
+            check_key("bar")
+            check_key("baz")
+        end
 
-            collectgarbage()
-        ';
+        collectgarbage()
     }
---- request
-GET /test
 --- stap
 global first_time = 1
 global active = 1
@@ -115,7 +111,7 @@ F(ngx_slab_alloc_pages).return {
 }
 
 F(ngx_slab_free_pages) {
-    printf("free pages: %d\n", $pages)
+        printf("free pages: %d\n", $pages)
 }
 
 --- stap_out
@@ -139,7 +135,7 @@ alloc pages: 2 NOT OK
 free pages: 1
 alloc pages: 2 ok
 
---- response_body
+--- stream_response
 successfully set foo.
 successfully set bar.
 successfully set baz with force.
@@ -159,56 +155,52 @@ found baz: 8102
 
 
 === TEST 2: merge 2 single-page free slabs (forcibly evicted, merge backward)
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local cats = t.cats
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local cats = t.cats
 
-            local function check_key(key)
-                local res, err = cats:get(key)
-                if res then
-                    ngx.say("found ", key, ": ", #res)
-                else
-                    if not err then
-                        ngx.say(key, " not found")
-                    else
-                        ngx.say("failed to fetch key: ", err)
-                    end
-                end
+        local function check_key(key)
+        local res, err = cats:get(key)
+        if res then
+                ngx.say("found ", key, ": ", #res)
+        else
+            if not err then
+                ngx.say(key, " not found")
+            else
+                ngx.say("failed to fetch key: ", err)
             end
+        end
+        end
 
-            local function set_key(key, value)
-                local ok, err, force = cats:set(key, value)
-                if ok then
-                    ngx.print("successfully set ", key)
-                    if force then
-                        ngx.say(" with force.")
-                    else
-                        ngx.say(".")
-                    end
-                else
-                    ngx.say("failed to set ", key, ": ", err)
-                end
+        local function set_key(key, value)
+        local ok, err, force = cats:set(key, value)
+        if ok then
+            ngx.print("successfully set ", key)
+            if force then
+                ngx.say(" with force.")
+            else
+                ngx.say(".")
             end
+        else
+                ngx.say("failed to set ", key, ": ", err)
+        end
+        end
 
-            for i = 1, 2 do
-                set_key("foo", string.rep("a", 4000))
-                set_key("bar", string.rep("b", 4001))
-                check_key("foo")
-                set_key("baz", string.rep("c", 8102))
+        for i = 1, 2 do
+            set_key("foo", string.rep("a", 4000))
+            set_key("bar", string.rep("b", 4001))
+            check_key("foo")
+            set_key("baz", string.rep("c", 8102))
 
-                check_key("foo")
-                check_key("bar")
-                check_key("baz")
-            end
+            check_key("foo")
+            check_key("bar")
+            check_key("baz")
+        end
 
-            collectgarbage()
-        ';
+        collectgarbage()
     }
---- request
-GET /test
 --- stap
 global first_time = 1
 global active = 1
@@ -224,7 +216,7 @@ F(ngx_http_lua_shdict_init_zone).return {
 F(ngx_slab_alloc_pages) {
     if (first_time) {
         printf("total pages: %d\n", $pool->pages->slab)
-        first_time = 0
+    first_time = 0
     }
     if (active) {
         printf("alloc pages: %d", $pages)
@@ -244,7 +236,7 @@ F(ngx_slab_alloc_pages).return {
 }
 
 F(ngx_slab_free_pages) {
-    printf("free pages: %d\n", $pages)
+        printf("free pages: %d\n", $pages)
 }
 
 --- stap_out
@@ -268,7 +260,7 @@ alloc pages: 2 NOT OK
 free pages: 1
 alloc pages: 2 ok
 
---- response_body
+--- stream_response
 successfully set foo.
 successfully set bar.
 found foo: 4000
@@ -290,71 +282,67 @@ found baz: 8102
 
 
 === TEST 3: merge 3 single-page free slabs (actively deleted, merge backward AND forward)
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local cats = t.bigcats
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local cats = t.bigcats
 
-            local function check_key(key)
-                local res, err = cats:get(key)
-                if res then
-                    ngx.say("found ", key, ": ", #res)
-                else
-                    if not err then
-                        ngx.say(key, " not found")
-                    else
-                        ngx.say("failed to fetch key: ", err)
-                    end
-                end
+        local function check_key(key)
+        local res, err = cats:get(key)
+        if res then
+                ngx.say("found ", key, ": ", #res)
+        else
+            if not err then
+                ngx.say(key, " not found")
+            else
+                ngx.say("failed to fetch key: ", err)
             end
+        end
+        end
 
-            local function set_key(key, value)
-                local ok, err, force = cats:set(key, value)
-                if ok then
-                    ngx.print("successfully set ", key)
-                    if force then
-                        ngx.say(" with force.")
-                    else
-                        ngx.say(".")
-                    end
-                else
-                    ngx.say("failed to set ", key, ": ", err)
-                end
+        local function set_key(key, value)
+        local ok, err, force = cats:set(key, value)
+        if ok then
+            ngx.print("successfully set ", key)
+            if force then
+                ngx.say(" with force.")
+            else
+                ngx.say(".")
             end
+        else
+            ngx.say("failed to set ", key, ": ", err)
+        end
+        end
 
-            local function safe_set_key(key, value)
-                local ok, err = cats:safe_set(key, value)
-                if ok then
-                    ngx.say("successfully safe set ", key)
-                else
-                    ngx.say("failed to safe set ", key, ": ", err)
-                end
-            end
+        local function safe_set_key(key, value)
+        local ok, err = cats:safe_set(key, value)
+        if ok then
+            ngx.say("successfully safe set ", key)
+        else
+            ngx.say("failed to safe set ", key, ": ", err)
+        end
+        end
 
-            for i = 1, 2 do
-                set_key("foo", string.rep("a", 4000))
-                set_key("bar", string.rep("b", 4001))
-                set_key("baz", string.rep("c", 4002))
+        for i = 1, 2 do
+            set_key("foo", string.rep("a", 4000))
+            set_key("bar", string.rep("b", 4001))
+            set_key("baz", string.rep("c", 4002))
 
-                check_key("foo")
-                check_key("bar")
-                check_key("baz")
+            check_key("foo")
+            check_key("bar")
+            check_key("baz")
 
-                cats:delete("foo")
-                safe_set_key("blah", string.rep("a", 8100))
-                cats:delete("baz")
-                safe_set_key("blah", string.rep("a", 8100))
-                cats:delete("bar")
-                safe_set_key("blah", string.rep("a", 12010))
-            end
+            cats:delete("foo")
+            safe_set_key("blah", string.rep("a", 8100))
+            cats:delete("baz")
+            safe_set_key("blah", string.rep("a", 8100))
+            cats:delete("bar")
+            safe_set_key("blah", string.rep("a", 12010))
+        end
 
-            collectgarbage()
-        ';
+        collectgarbage()
     }
---- request
-GET /test
 --- stap
 global first_time = 1
 global active = 1
@@ -370,7 +358,7 @@ F(ngx_http_lua_shdict_init_zone).return {
 F(ngx_slab_alloc_pages) {
     if (first_time) {
         printf("total pages: %d\n", $pool->pages->slab)
-        first_time = 0
+    first_time = 0
     }
     if (active) {
         printf("alloc pages: %d", $pages)
@@ -390,7 +378,7 @@ F(ngx_slab_alloc_pages).return {
 }
 
 F(ngx_slab_free_pages) {
-    printf("free pages: %d\n", $pages)
+        printf("free pages: %d\n", $pages)
 }
 
 --- stap_out
@@ -418,7 +406,7 @@ alloc pages: 2 NOT OK
 free pages: 1
 alloc pages: 3 ok
 
---- response_body
+--- stream_response
 successfully set foo.
 successfully set bar.
 successfully set baz.
@@ -444,72 +432,68 @@ successfully safe set blah
 
 
 === TEST 4: merge one single-page block backward, but no more
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local cats = t.bigcats
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local cats = t.bigcats
 
-            local function check_key(key)
-                local res, err = cats:get(key)
-                if res then
-                    ngx.say("found ", key, ": ", #res)
-                else
-                    if not err then
-                        ngx.say(key, " not found")
-                    else
-                        ngx.say("failed to fetch key: ", err)
-                    end
-                end
+        local function check_key(key)
+        local res, err = cats:get(key)
+        if res then
+                ngx.say("found ", key, ": ", #res)
+        else
+            if not err then
+                ngx.say(key, " not found")
+            else
+                ngx.say("failed to fetch key: ", err)
             end
+        end
+        end
 
-            local function set_key(key, value)
-                local ok, err, force = cats:set(key, value)
-                if ok then
-                    ngx.print("successfully set ", key)
-                    if force then
-                        ngx.say(" with force.")
-                    else
-                        ngx.say(".")
-                    end
-                else
-                    ngx.say("failed to set ", key, ": ", err)
-                end
+        local function set_key(key, value)
+        local ok, err, force = cats:set(key, value)
+        if ok then
+            ngx.print("successfully set ", key)
+            if force then
+                ngx.say(" with force.")
+            else
+                ngx.say(".")
             end
+        else
+                ngx.say("failed to set ", key, ": ", err)
+        end
+        end
 
-            local function safe_set_key(key, value)
-                local ok, err = cats:safe_set(key, value)
-                if ok then
-                    ngx.say("successfully safe set ", key)
-                else
-                    ngx.say("failed to safe set ", key, ": ", err)
-                end
-            end
+        local function safe_set_key(key, value)
+        local ok, err = cats:safe_set(key, value)
+        if ok then
+            ngx.say("successfully safe set ", key)
+        else
+            ngx.say("failed to safe set ", key, ": ", err)
+        end
+        end
 
-            for i = 1, 1 do
-                set_key("foo", string.rep("a", 4000))
-                set_key("bar", string.rep("b", 4001))
-                set_key("baz", string.rep("c", 4002))
+        for i = 1, 1 do
+            set_key("foo", string.rep("a", 4000))
+            set_key("bar", string.rep("b", 4001))
+            set_key("baz", string.rep("c", 4002))
 
-                check_key("foo")
-                check_key("bar")
-                check_key("baz")
+            check_key("foo")
+            check_key("bar")
+            check_key("baz")
 
-                cats:delete("bar")
-                safe_set_key("blah", string.rep("a", 8100))
-                cats:delete("baz")
-                safe_set_key("blah", string.rep("a", 8100))
-                check_key("foo")
-                cats:delete("foo")
-                check_key("blah")
-            end
+            cats:delete("bar")
+            safe_set_key("blah", string.rep("a", 8100))
+            cats:delete("baz")
+            safe_set_key("blah", string.rep("a", 8100))
+            check_key("foo")
+            cats:delete("foo")
+            check_key("blah")
+        end
 
-            collectgarbage()
-        ';
+        collectgarbage()
     }
---- request
-GET /test
 --- stap
 global first_time = 1
 global active = 1
@@ -545,7 +529,7 @@ F(ngx_slab_alloc_pages).return {
 }
 
 F(ngx_slab_free_pages) {
-    printf("free pages: %d\n", $pages)
+        printf("free pages: %d\n", $pages)
 }
 
 --- stap_out
@@ -561,7 +545,7 @@ free pages: 1
 alloc pages: 2 ok
 free pages: 1
 
---- response_body
+--- stream_response
 successfully set foo.
 successfully set bar.
 successfully set baz.
@@ -579,72 +563,68 @@ found blah: 8100
 
 
 === TEST 5: merge one single-page block forward, but no more
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local cats = t.bigcats
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local cats = t.bigcats
 
-            local function check_key(key)
-                local res, err = cats:get(key)
-                if res then
-                    ngx.say("found ", key, ": ", #res)
-                else
-                    if not err then
-                        ngx.say(key, " not found")
-                    else
-                        ngx.say("failed to fetch key: ", err)
-                    end
-                end
+        local function check_key(key)
+        local res, err = cats:get(key)
+        if res then
+            ngx.say("found ", key, ": ", #res)
+        else
+            if not err then
+                ngx.say(key, " not found")
+            else
+                ngx.say("failed to fetch key: ", err)
             end
+        end
+        end
 
-            local function set_key(key, value)
-                local ok, err, force = cats:set(key, value)
-                if ok then
-                    ngx.print("successfully set ", key)
-                    if force then
-                        ngx.say(" with force.")
-                    else
-                        ngx.say(".")
-                    end
-                else
-                    ngx.say("failed to set ", key, ": ", err)
-                end
+        local function set_key(key, value)
+        local ok, err, force = cats:set(key, value)
+        if ok then
+            ngx.print("successfully set ", key)
+            if force then
+                ngx.say(" with force.")
+            else
+                ngx.say(".")
             end
+        else
+            ngx.say("failed to set ", key, ": ", err)
+        end
+        end
 
-            local function safe_set_key(key, value)
-                local ok, err = cats:safe_set(key, value)
-                if ok then
-                    ngx.say("successfully safe set ", key)
-                else
-                    ngx.say("failed to safe set ", key, ": ", err)
-                end
-            end
+        local function safe_set_key(key, value)
+        local ok, err = cats:safe_set(key, value)
+        if ok then
+            ngx.say("successfully safe set ", key)
+        else
+            ngx.say("failed to safe set ", key, ": ", err)
+        end
+        end
 
-            for i = 1, 1 do
-                set_key("foo", string.rep("a", 4000))
-                set_key("bar", string.rep("b", 4001))
-                set_key("baz", string.rep("c", 4002))
+        for i = 1, 1 do
+            set_key("foo", string.rep("a", 4000))
+            set_key("bar", string.rep("b", 4001))
+            set_key("baz", string.rep("c", 4002))
 
-                check_key("foo")
-                check_key("bar")
-                check_key("baz")
+            check_key("foo")
+            check_key("bar")
+            check_key("baz")
 
-                cats:delete("bar")
-                safe_set_key("blah", string.rep("a", 8100))
-                cats:delete("foo")
-                safe_set_key("blah", string.rep("a", 8100))
-                check_key("baz")
-                cats:delete("baz")
-                check_key("blah")
-            end
+            cats:delete("bar")
+            safe_set_key("blah", string.rep("a", 8100))
+            cats:delete("foo")
+            safe_set_key("blah", string.rep("a", 8100))
+            check_key("baz")
+            cats:delete("baz")
+            check_key("blah")
+        end
 
-            collectgarbage()
-        ';
+        collectgarbage()
     }
---- request
-GET /test
 --- stap
 global first_time = 1
 global active = 1
@@ -660,7 +640,7 @@ F(ngx_http_lua_shdict_init_zone).return {
 F(ngx_slab_alloc_pages) {
     if (first_time) {
         printf("total pages: %d\n", $pool->pages->slab)
-        first_time = 0
+    first_time = 0
     }
     if (active) {
         printf("alloc pages: %d", $pages)
@@ -680,7 +660,7 @@ F(ngx_slab_alloc_pages).return {
 }
 
 F(ngx_slab_free_pages) {
-    printf("free pages: %d\n", $pages)
+        printf("free pages: %d\n", $pages)
 }
 
 --- stap_out
@@ -696,7 +676,7 @@ free pages: 1
 alloc pages: 2 ok
 free pages: 1
 
---- response_body
+--- stream_response
 successfully set foo.
 successfully set bar.
 successfully set baz.
@@ -714,69 +694,65 @@ found blah: 8100
 
 
 === TEST 6: merge 2 multi-page blocks (forcibly evicted, merge backward)
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
 
-            local function check_key(key)
-                local res, err = dogs:get(key)
-                if res then
-                    ngx.say("found ", key, ": ", #res)
-                else
-                    if not err then
-                        ngx.say(key, " not found")
-                    else
-                        ngx.say("failed to fetch key: ", err)
-                    end
-                end
+        local function check_key(key)
+        local res, err = dogs:get(key)
+        if res then
+                ngx.say("found ", key, ": ", #res)
+        else
+            if not err then
+                ngx.say(key, " not found")
+            else
+                ngx.say("failed to fetch key: ", err)
             end
+        end
+        end
 
-            local function set_key(key, value)
-                local ok, err, force = dogs:set(key, value)
-                if ok then
-                    ngx.print("successfully set ", key)
-                    if force then
-                        ngx.say(" with force.")
-                    else
-                        ngx.say(".")
-                    end
-                else
-                    ngx.say("failed to set ", key, ": ", err)
-                end
+        local function set_key(key, value)
+        local ok, err, force = dogs:set(key, value)
+        if ok then
+            ngx.print("successfully set ", key)
+            if force then
+                ngx.say(" with force.")
+            else
+                ngx.say(".")
             end
+        else
+            ngx.say("failed to set ", key, ": ", err)
+        end
+        end
 
-            local function safe_set_key(key, value)
-                local ok, err = dogs:safe_set(key, value)
-                if ok then
-                    ngx.say("successfully safe set ", key)
-                else
-                    ngx.say("failed to safe set ", key, ": ", err)
-                end
-            end
+        local function safe_set_key(key, value)
+        local ok, err = dogs:safe_set(key, value)
+        if ok then
+            ngx.say("successfully safe set ", key)
+        else
+            ngx.say("failed to safe set ", key, ": ", err)
+        end
+        end
 
-            for i = 1, 1 do
-                set_key("foo", string.rep("a", 8100))
-                set_key("bar", string.rep("b", 8101))
-                check_key("foo")
-                safe_set_key("baz", string.rep("c", 16300))
-                dogs:delete("foo")
-                check_key("bar")
-                dogs:delete("bar")
-                safe_set_key("baz", string.rep("c", 16300))
+        for i = 1, 1 do
+            set_key("foo", string.rep("a", 8100))
+            set_key("bar", string.rep("b", 8101))
+            check_key("foo")
+            safe_set_key("baz", string.rep("c", 16300))
+            dogs:delete("foo")
+            check_key("bar")
+            dogs:delete("bar")
+            safe_set_key("baz", string.rep("c", 16300))
 
-                check_key("foo")
-                check_key("bar")
-                check_key("baz")
-            end
+            check_key("foo")
+            check_key("bar")
+            check_key("baz")
+        end
 
-            collectgarbage()
-        ';
+        collectgarbage()
     }
---- request
-GET /test
 --- stap
 global first_time = 1
 global active = 1
@@ -792,7 +768,7 @@ F(ngx_http_lua_shdict_init_zone).return {
 F(ngx_slab_alloc_pages) {
     if (first_time) {
         printf("total pages: %d\n", $pool->pages->slab)
-        first_time = 0
+    first_time = 0
     }
     if (active) {
         printf("alloc pages: %d", $pages)
@@ -812,7 +788,7 @@ F(ngx_slab_alloc_pages).return {
 }
 
 F(ngx_slab_free_pages) {
-    printf("free pages: %d\n", $pages)
+        printf("free pages: %d\n", $pages)
 }
 
 --- stap_out
@@ -826,7 +802,7 @@ free pages: 2
 free pages: 2
 alloc pages: 4 ok
 
---- response_body
+--- stream_response
 successfully set foo.
 successfully set bar.
 found foo: 8100
@@ -843,73 +819,69 @@ found baz: 16300
 
 
 === TEST 7: merge big slabs (less than max slab size) backward
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local cats = t.cats
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local cats = t.cats
 
-            local function check_key(key)
-                local res, err = cats:get(key)
-                if res then
-                    ngx.say("found ", key, ": ", #res)
-                else
-                    if not err then
-                        ngx.say(key, " not found")
-                    else
-                        ngx.say("failed to fetch key: ", err)
-                    end
-                end
+        local function check_key(key)
+        local res, err = cats:get(key)
+        if res then
+            ngx.say("found ", key, ": ", #res)
+        else
+            if not err then
+                ngx.say(key, " not found")
+            else
+                ngx.say("failed to fetch key: ", err)
+            end
+        end
+        end
+
+        local function set_key(key, value)
+        local ok, err, force = cats:set(key, value)
+        if ok then
+            ngx.print("successfully set ", key)
+            if force then
+                ngx.say(" with force.")
+            else
+                ngx.say(".")
+            end
+        else
+            ngx.say("failed to set ", key, ": ", err)
+        end
+        end
+
+        local function safe_set_key(key, value)
+        local ok, err = cats:safe_set(key, value)
+        if ok then
+            ngx.say("successfully safe set ", key)
+        else
+            ngx.say("failed to safe set ", key, ": ", err)
+        end
+        end
+
+        for i = 1, 1 do
+            for j = 1, 50 do
+                cats:set("foo" .. j, string.rep("a", 5))
+            end
+            set_key("bar", string.rep("a", 4000))
+
+            for j = 1, 50 do
+                cats:delete("foo" .. j)
             end
 
-            local function set_key(key, value)
-                local ok, err, force = cats:set(key, value)
-                if ok then
-                    ngx.print("successfully set ", key)
-                    if force then
-                        ngx.say(" with force.")
-                    else
-                        ngx.say(".")
-                    end
-                else
-                    ngx.say("failed to set ", key, ": ", err)
-                end
-            end
+            safe_set_key("baz", string.rep("b", 8100))
+            check_key("bar")
 
-            local function safe_set_key(key, value)
-                local ok, err = cats:safe_set(key, value)
-                if ok then
-                    ngx.say("successfully safe set ", key)
-                else
-                    ngx.say("failed to safe set ", key, ": ", err)
-                end
-            end
+            ngx.say("delete bar")
+            cats:delete("bar")
 
-            for i = 1, 1 do
-                for j = 1, 50 do
-                    cats:set("foo" .. j, string.rep("a", 5))
-                end
-                set_key("bar", string.rep("a", 4000))
+            safe_set_key("baz", string.rep("b", 8100))
+        end
 
-                for j = 1, 50 do
-                    cats:delete("foo" .. j)
-                end
-
-                safe_set_key("baz", string.rep("b", 8100))
-                check_key("bar")
-
-                ngx.say("delete bar")
-                cats:delete("bar")
-
-                safe_set_key("baz", string.rep("b", 8100))
-            end
-
-            collectgarbage()
-        ';
+        collectgarbage()
     }
---- request
-GET /test
 --- stap
 global first_time = 1
 global active = 1
@@ -926,7 +898,7 @@ F(ngx_slab_alloc_pages) {
     if (first_time) {
         //printf("slab max size: %d\n", @var("ngx_slab_max_size"))
         printf("total pages: %d\n", $pool->pages->slab)
-        first_time = 0
+    first_time = 0
     }
     if (active) {
         printf("alloc pages: %d", $pages)
@@ -946,7 +918,7 @@ F(ngx_slab_alloc_pages).return {
 }
 
 F(ngx_slab_free_pages) {
-    printf("free pages: %d\n", $pages)
+        printf("free pages: %d\n", $pages)
 }
 
 --- stap_out
@@ -960,7 +932,7 @@ alloc pages: 2 NOT OK
 free pages: 1
 alloc pages: 2 ok
 
---- response_body
+--- stream_response
 successfully set bar.
 failed to safe set baz: no memory
 found bar: 4000
@@ -973,75 +945,71 @@ successfully safe set baz
 
 
 === TEST 8: cannot merge in-used big slabs page (backward)
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local cats = t.cats
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local cats = t.cats
 
-            local function check_key(key)
-                local res, err = cats:get(key)
-                if res then
-                    ngx.say("found ", key, ": ", #res)
-                else
-                    if not err then
-                        ngx.say(key, " not found")
-                    else
-                        ngx.say("failed to fetch key: ", err)
-                    end
-                end
+        local function check_key(key)
+        local res, err = cats:get(key)
+        if res then
+                ngx.say("found ", key, ": ", #res)
+        else
+            if not err then
+                ngx.say(key, " not found")
+            else
+                ngx.say("failed to fetch key: ", err)
             end
+        end
+        end
 
-            local function set_key(key, value)
-                local ok, err, force = cats:set(key, value)
-                if ok then
-                    ngx.print("successfully set ", key)
-                    if force then
-                        ngx.say(" with force.")
-                    else
-                        ngx.say(".")
-                    end
-                else
-                    ngx.say("failed to set ", key, ": ", err)
-                end
+        local function set_key(key, value)
+        local ok, err, force = cats:set(key, value)
+        if ok then
+            ngx.print("successfully set ", key)
+            if force then
+                ngx.say(" with force.")
+            else
+                ngx.say(".")
             end
+        else
+                ngx.say("failed to set ", key, ": ", err)
+        end
+        end
 
-            local function safe_set_key(key, value)
-                local ok, err = cats:safe_set(key, value)
-                if ok then
-                    ngx.say("successfully safe set ", key)
-                else
-                    ngx.say("failed to safe set ", key, ": ", err)
-                end
+        local function safe_set_key(key, value)
+        local ok, err = cats:safe_set(key, value)
+        if ok then
+            ngx.say("successfully safe set ", key)
+        else
+            ngx.say("failed to safe set ", key, ": ", err)
+        end
+        end
+
+        for i = 1, 1 do
+            for j = 1, 63 do
+                cats:set("foo" .. j, string.rep("a", 5))
             end
+            set_key("bar", string.rep("a", 4000))
 
-            for i = 1, 1 do
-                for j = 1, 63 do
-                    cats:set("foo" .. j, string.rep("a", 5))
-                end
-                set_key("bar", string.rep("a", 4000))
-
-                --[[
-                for j = 1, 50 do
-                    cats:delete("foo" .. j)
-                end
-                ]]
-
-                safe_set_key("baz", string.rep("b", 8100))
-                check_key("bar")
-
-                ngx.say("delete bar")
-                cats:delete("bar")
-
-                safe_set_key("baz", string.rep("b", 8100))
+            --[[
+            for j = 1, 50 do
+                cats:delete("foo" .. j)
             end
+            ]]
 
-            collectgarbage()
-        ';
+            safe_set_key("baz", string.rep("b", 8100))
+            check_key("bar")
+
+            ngx.say("delete bar")
+            cats:delete("bar")
+
+            safe_set_key("baz", string.rep("b", 8100))
+        end
+
+        collectgarbage()
     }
---- request
-GET /test
 --- stap
 global first_time = 1
 global active = 1
@@ -1058,7 +1026,7 @@ F(ngx_slab_alloc_pages) {
     if (first_time) {
         //printf("slab max size: %d\n", @var("ngx_slab_max_size"))
         printf("total pages: %d\n", $pool->pages->slab)
-        first_time = 0
+    first_time = 0
     }
     if (active) {
         printf("alloc pages: %d", $pages)
@@ -1078,7 +1046,7 @@ F(ngx_slab_alloc_pages).return {
 }
 
 F(ngx_slab_free_pages) {
-    printf("free pages: %d\n", $pages)
+        printf("free pages: %d\n", $pages)
 }
 
 --- stap_out
@@ -1091,7 +1059,7 @@ alloc pages: 2 NOT OK
 free pages: 1
 alloc pages: 2 NOT OK
 
---- response_body
+--- stream_response
 successfully set bar.
 failed to safe set baz: no memory
 found bar: 4000
@@ -1104,75 +1072,71 @@ failed to safe set baz: no memory
 
 
 === TEST 9: cannot merge in-used big slabs page (forward)
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local cats = t.cats
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local cats = t.cats
 
-            local function check_key(key)
-                local res, err = cats:get(key)
-                if res then
-                    ngx.say("found ", key, ": ", #res)
-                else
-                    if not err then
-                        ngx.say(key, " not found")
-                    else
-                        ngx.say("failed to fetch key: ", err)
-                    end
-                end
+        local function check_key(key)
+        local res, err = cats:get(key)
+        if res then
+            ngx.say("found ", key, ": ", #res)
+        else
+            if not err then
+                ngx.say(key, " not found")
+            else
+                ngx.say("failed to fetch key: ", err)
+            end
+        end
+        end
+
+        local function set_key(key, value)
+        local ok, err, force = cats:set(key, value)
+        if ok then
+            ngx.print("successfully set ", key)
+            if force then
+                ngx.say(" with force.")
+            else
+                ngx.say(".")
+            end
+        else
+            ngx.say("failed to set ", key, ": ", err)
+        end
+        end
+
+        local function safe_set_key(key, value)
+        local ok, err = cats:safe_set(key, value)
+        if ok then
+            ngx.say("successfully safe set ", key)
+        else
+            ngx.say("failed to safe set ", key, ": ", err)
+        end
+        end
+
+        for i = 1, 1 do
+            set_key("bar", string.rep("a", 4000))
+            for j = 1, 50 do
+                cats:set("foo" .. j, string.rep("a", 5))
             end
 
-            local function set_key(key, value)
-                local ok, err, force = cats:set(key, value)
-                if ok then
-                    ngx.print("successfully set ", key)
-                    if force then
-                        ngx.say(" with force.")
-                    else
-                        ngx.say(".")
-                    end
-                else
-                    ngx.say("failed to set ", key, ": ", err)
-                end
+            --[[
+            for j = 1, 50 do
+                cats:delete("foo" .. j)
             end
+            ]]
 
-            local function safe_set_key(key, value)
-                local ok, err = cats:safe_set(key, value)
-                if ok then
-                    ngx.say("successfully safe set ", key)
-                else
-                    ngx.say("failed to safe set ", key, ": ", err)
-                end
-            end
+            safe_set_key("baz", string.rep("b", 8100))
+            check_key("bar")
 
-            for i = 1, 1 do
-                set_key("bar", string.rep("a", 4000))
-                for j = 1, 50 do
-                    cats:set("foo" .. j, string.rep("a", 5))
-                end
+            ngx.say("delete bar")
+            cats:delete("bar")
 
-                --[[
-                for j = 1, 50 do
-                    cats:delete("foo" .. j)
-                end
-                ]]
+            safe_set_key("baz", string.rep("b", 8100))
+        end
 
-                safe_set_key("baz", string.rep("b", 8100))
-                check_key("bar")
-
-                ngx.say("delete bar")
-                cats:delete("bar")
-
-                safe_set_key("baz", string.rep("b", 8100))
-            end
-
-            collectgarbage()
-        ';
+        collectgarbage()
     }
---- request
-GET /test
 --- stap
 global first_time = 1
 global active = 1
@@ -1189,7 +1153,7 @@ F(ngx_slab_alloc_pages) {
     if (first_time) {
         //printf("slab max size: %d\n", @var("ngx_slab_max_size"))
         printf("total pages: %d\n", $pool->pages->slab)
-        first_time = 0
+    first_time = 0
     }
     if (active) {
         printf("alloc pages: %d", $pages)
@@ -1222,7 +1186,7 @@ alloc pages: 2 NOT OK
 free pages: 1
 alloc pages: 2 NOT OK
 
---- response_body
+--- stream_response
 successfully set bar.
 failed to safe set baz: no memory
 found bar: 4000
@@ -1235,41 +1199,37 @@ failed to safe set baz: no memory
 
 
 === TEST 10: fuzz testing
---- http_config eval: $::HttpConfig
---- config
-    location = /t {
-        content_by_lua '
-            local rand = math.random
-            local t = require("resty.shdict")
-            local kingkong = t.kingkong
-            local maxsz = 9000
-            local maxkeyidx = 30
-            local rep = string.rep
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local rand = math.random
+        local t = require("resty.shdict")
+        local kingkong = t.kingkong
+        local maxsz = 9000
+        local maxkeyidx = 30
+        local rep = string.rep
 
-            math.randomseed(ngx.time())
-            for i = 1, 30000 do
-                local key = "mylittlekey" .. rand(maxkeyidx)
-                local ok, err = kingkong:get(key)
-                if not ok or rand() > 0.6 then
-                    sz = rand(maxsz)
-                    val = rep("a", sz)
-                    local ok, err, forcible = kingkong:set(key, val)
-                    if err then
-                        ngx.log(ngx.ERR, "failed to set key: ", err)
-                        -- return
-                    end
-                    if forcible then
-                        -- error("forcible")
-                    end
+        math.randomseed(ngx.time())
+        for i = 1, 30000 do
+            local key = "mylittlekey" .. rand(maxkeyidx)
+            local ok, err = kingkong:get(key)
+            if not ok or rand() > 0.6 then
+                sz = rand(maxsz)
+                val = rep("a", sz)
+                local ok, err, forcible = kingkong:set(key, val)
+                if err then
+                ngx.log(ngx.ERR, "failed to set key: ", err)
+                -- return
+                end
+                if forcible then
+                -- error("forcible")
                 end
             end
-            ngx.say("ok")
-            collectgarbage()
-        ';
+        end
+        ngx.say("ok")
+        collectgarbage()
     }
---- request
-GET /t
---- response_body
+--- stream_response
 ok
 
 --- no_error_log

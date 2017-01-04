@@ -28,7 +28,6 @@ ngx-build $force $version \
           --add-module=$root/../echo-nginx-module \
           --add-module=$root $opts \
           --add-module=$root/../lua-nginx-module \
-          --add-module=$root/../stream-lua-nginx-module \
           --with-select_module \
           --with-poll_module \
           --with-debug

@@ -4,8 +4,8 @@
  */
 
 
-#ifndef _NGX_LUA_SHDICT_H_INCLUDED_
-#define _NGX_LUA_SHDICT_H_INCLUDED_
+#ifndef _NGX_LUA_SHDICT_COMMON_H_
+#define _NGX_LUA_SHDICT_COMMON_H_
 
 
 #ifndef DDEBUG
@@ -16,7 +16,6 @@
 
 #include <ngx_config.h>
 #include <ngx_core.h>
-#include <ngx_http.h>
 #include <nginx.h>
 
 
@@ -25,8 +24,13 @@
 #include <lauxlib.h>
 
 
-#include "ngx_http_lua_api.h"
-#include "ngx_stream_lua_api.h"
+#ifdef NGX_HAVE_HTTP_LUA_MODULE
+#   include "ngx_http_lua_api.h"
+#endif
+
+#ifdef NGX_HAVE_STREAM_LUA_MODULE
+#   include "ngx_stream_lua_api.h"
+#endif
 
 
 typedef struct {
@@ -57,7 +61,7 @@ typedef struct {
 
 
 typedef struct {
-    ngx_lua_shdict_shctx_t  *sh;
+    ngx_lua_shdict_shctx_t       *sh;
     ngx_slab_pool_t              *shpool;
     ngx_str_t                     name;
     ngx_log_t                    *log;
@@ -67,15 +71,6 @@ typedef struct {
 #define NGX_LUA_SHDICT_ADD         0x0001
 #define NGX_LUA_SHDICT_REPLACE     0x0002
 #define NGX_LUA_SHDICT_SAFE_STORE  0x0004
-#define NGX_LUA_SHDICT_EXPIRE      0x0008
-
-
-#define NGX_LUA_SHDICT_STALE       0x0001
-#define NGX_LUA_SHDICT_TTL         0x0002
-
-
-#define NGX_LUA_SHDICT_LEFT        0x0001
-#define NGX_LUA_SHDICT_RIGHT       0x0002
 
 
 enum {
@@ -87,22 +82,34 @@ enum {
 };
 
 
-typedef ngx_shm_zone_t* (*ngx_shm_add_pt) \
-                        (ngx_conf_t *cf, ngx_str_t *name, size_t size, void *tag);
-
-
 typedef struct {
-    ngx_shm_add_pt   shared_memory_add;
     ngx_array_t     *shdict_zones;
-} ngx_lua_shdict_main_conf_t;
+#if defined(NGX_HAVE_HTTP_LUA_MODULE) && \
+    defined(NGX_HAVE_STREAM_LUA_MODULE)
+    unsigned         before_zone:1;
+    unsigned         after_zone:1;
+#endif
+} ngx_lua_shdict_conf_t;
 
 
-static void *ngx_lua_shdict_create_common_main_conf(ngx_conf_t *cf);
+extern ngx_module_t ngx_lua_shdict_module;
 
-ngx_int_t ngx_lua_shdict_common_init(ngx_shm_zone_t *shm_zone, void *data);
+int ngx_lua_shdict_expire(ngx_lua_shdict_ctx_t *ctx, ngx_uint_t n);
 
-static char *ngx_lua_shdict_common_cmd_set(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf, ngx_shared_memory_add_pt shared_memory_add, void *tag);
+ngx_int_t ngx_lua_shdict_lookup(ngx_shm_zone_t *shm_zone, ngx_uint_t hash,
+    u_char *kdata, size_t klen, ngx_lua_shdict_node_t **sdp);
+
+char *ngx_lua_shdict(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+
+ngx_int_t ngx_lua_shdict_fake_init(ngx_shm_zone_t *shm_zone, void *data);
 
 
-#endif /* _NGX_LUA_SHDICT_H_INCLUDED_ */
+static ngx_inline ngx_queue_t *
+ngx_lua_shdict_get_list_head(ngx_lua_shdict_node_t *sd, size_t len)
+{
+    return (ngx_queue_t *) ngx_align_ptr(((u_char *) &sd->data + len),
+                                         NGX_ALIGNMENT);
+}
+
+
+#endif /* _NGX_LUA_SHDICT_COMMON_H_ */

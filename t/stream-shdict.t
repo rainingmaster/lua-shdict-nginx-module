@@ -1,13 +1,13 @@
 # vim:set ft= ts=4 sw=4 et fdm=marker:
 
-use Test::Nginx::Socket::Lua;
+use Test::Nginx::Socket::Lua::Stream;
 use Cwd qw(cwd);
 
-plan tests => repeat_each() * (blocks() * 3 + 18);
+plan tests => repeat_each() * (blocks() * 3 + 5);
 
 my $pwd = cwd();
 
-our $HttpConfig = qq{
+our $StreamConfig = qq{
     lua_package_path "$pwd/t/lib/?.lua;$pwd/lib/?.lua;;";
     lua_shared_mem tinydogs 50k;
     lua_shared_mem smalldogs 100k;
@@ -22,23 +22,19 @@ run_tests();
 __DATA__
 
 === TEST 1: string key, int value
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("foo", 32)
-            dogs:set("bah", 10502)
-            local val = dogs:get("foo")
-            ngx.say(val, " ", type(val))
-            val = dogs:get("bah")
-            ngx.say(val, " ", type(val))
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs:set("foo", 32)
+        dogs:set("bah", 10502)
+        local val = dogs:get("foo")
+        ngx.say(val, " ", type(val))
+        val = dogs:get("bah")
+        ngx.say(val, " ", type(val))
     }
---- request
-GET /test
---- response_body
+--- stream_response
 32 number
 10502 number
 --- no_error_log
@@ -47,24 +43,20 @@ GET /test
 
 
 === TEST 2: string key, floating-point value
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("foo", 3.14159)
-            dogs:set("baz", 1.28)
-            dogs:set("baz", 3.96)
-            local val = dogs:get("foo")
-            ngx.say(val, " ", type(val))
-            val = dogs:get("baz")
-            ngx.say(val, " ", type(val))
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs:set("foo", 3.14159)
+        dogs:set("baz", 1.28)
+        dogs:set("baz", 3.96)
+        local val = dogs:get("foo")
+        ngx.say(val, " ", type(val))
+        val = dogs:get("baz")
+        ngx.say(val, " ", type(val))
     }
---- request
-GET /test
---- response_body
+--- stream_response
 3.14159 number
 3.96 number
 --- no_error_log
@@ -73,23 +65,19 @@ GET /test
 
 
 === TEST 3: string key, boolean value
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("foo", true)
-            dogs:set("bar", false)
-            local val = dogs:get("foo")
-            ngx.say(val, " ", type(val))
-            val = dogs:get("bar")
-            ngx.say(val, " ", type(val))
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs:set("foo", true)
+        dogs:set("bar", false)
+        local val = dogs:get("foo")
+        ngx.say(val, " ", type(val))
+        val = dogs:get("bar")
+        ngx.say(val, " ", type(val))
     }
---- request
-GET /test
---- response_body
+--- stream_response
 true boolean
 false boolean
 --- no_error_log
@@ -98,24 +86,20 @@ false boolean
 
 
 === TEST 4: number keys, string values
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            ngx.say(dogs:set(1234, "cat"))
-            ngx.say(dogs:set("1234", "dog"))
-            ngx.say(dogs:set(256, "bird"))
-            ngx.say(dogs:get(1234))
-            ngx.say(dogs:get("1234"))
-            local val = dogs:get("256")
-            ngx.say(val, " ", type(val))
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        ngx.say(dogs:set(1234, "cat"))
+        ngx.say(dogs:set("1234", "dog"))
+        ngx.say(dogs:set(256, "bird"))
+        ngx.say(dogs:get(1234))
+        ngx.say(dogs:get("1234"))
+        local val = dogs:get("256")
+        ngx.say(val, " ", type(val))
     }
---- request
-GET /test
---- response_body
+--- stream_response
 truenilfalse
 truenilfalse
 truenilfalse
@@ -128,23 +112,19 @@ bird string
 
 
 === TEST 5: different-size values set to the same key
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("foo", "hello")
-            ngx.say(dogs:get("foo"))
-            dogs:set("foo", "hello, world")
-            ngx.say(dogs:get("foo"))
-            dogs:set("foo", "hello")
-            ngx.say(dogs:get("foo"))
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs:set("foo", "hello")
+        ngx.say(dogs:get("foo"))
+        dogs:set("foo", "hello, world")
+        ngx.say(dogs:get("foo"))
+        dogs:set("foo", "hello")
+        ngx.say(dogs:get("foo"))
     }
---- request
-GET /test
---- response_body
+--- stream_response
 hello
 hello, world
 hello
@@ -154,23 +134,16 @@ hello
 
 
 === TEST 6: expired entries (can be auto-removed by get)
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("foo", 32, 0.01)
-            ngx.location.capture("/sleep/0.01")
-            ngx.say(dogs:get("foo"))
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs:set("foo", 32, 0.01)
+        ngx.sleep(0.01)
+        ngx.say(dogs:get("foo"))
     }
-    location ~ '^/sleep/(.+)' {
-        echo_sleep $1;
-    }
---- request
-GET /test
---- response_body
+--- stream_response
 nil
 --- no_error_log
 [error]
@@ -178,25 +151,18 @@ nil
 
 
 === TEST 7: expired entries (can NOT be auto-removed by get)
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("bar", 56, 0.001)
-            dogs:set("baz", 78, 0.001)
-            dogs:set("foo", 32, 0.01)
-            ngx.location.capture("/sleep/0.012")
-            ngx.say(dogs:get("foo"))
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs:set("bar", 56, 0.001)
+        dogs:set("baz", 78, 0.001)
+        dogs:set("foo", 32, 0.01)
+        ngx.sleep(0.012)
+        ngx.say(dogs:get("foo"))
     }
-    location ~ '^/sleep/(.+)' {
-        echo_sleep $1;
-    }
---- request
-GET /test
---- response_body
+--- stream_response
 nil
 --- no_error_log
 [error]
@@ -204,23 +170,16 @@ nil
 
 
 === TEST 8: not yet expired entries
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("foo", 32, 0.5)
-            ngx.location.capture("/sleep/0.01")
-            ngx.say(dogs:get("foo"))
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs:set("foo", 32, 0.5)
+        ngx.sleep(0.01)
+        ngx.say(dogs:get("foo"))
     }
-    location ~ '^/sleep/(.+)' {
-        echo_sleep $1;
-    }
---- request
-GET /test
---- response_body
+--- stream_response
 32
 --- no_error_log
 [error]
@@ -228,35 +187,31 @@ GET /test
 
 
 === TEST 9: forcibly override other valid entries
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.smalldogs
-            local i = 0
-            while i < 1000 do
-                i = i + 1
-                local val = string.rep(" hello", 10) .. i
-                local res, err, forcible = dogs:set("key_" .. i, val)
-                if not res or forcible then
-                    ngx.say(res, " ", err, " ", forcible)
-                    break
-                end
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.smalldogs
+        local i = 0
+        while i < 1000 do
+            i = i + 1
+            local val = string.rep(" hello", 10) .. i
+            local res, err, forcible = dogs:set("key_" .. i, val)
+            if not res or forcible then
+                ngx.say(res, " ", err, " ", forcible)
+                break
             end
-            ngx.say("abort at ", i)
-            ngx.say("cur value: ", dogs:get("key_" .. i))
-            if i > 1 then
-                ngx.say("1st value: ", dogs:get("key_1"))
-            end
-            if i > 2 then
-                ngx.say("2nd value: ", dogs:get("key_2"))
-            end
-        ';
+        end
+        ngx.say("abort at ", i)
+        ngx.say("cur value: ", dogs:get("key_" .. i))
+        if i > 1 then
+            ngx.say("1st value: ", dogs:get("key_1"))
+        end
+        if i > 2 then
+            ngx.say("2nd value: ", dogs:get("key_2"))
+        end
     }
---- pipelined_requests eval
-["GET /test", "GET /test"]
---- response_body eval
+--- stream_response eval
 my $a = "true nil true\nabort at (353|705)\ncur value: " . (" hello" x 10) . "\\1\n1st value: nil\n2nd value: " . (" hello" x 10) . "2\n";
 [qr/$a/,
 "true nil true\nabort at 1\ncur value: " . (" hello" x 10) . "1\n"
@@ -267,38 +222,34 @@ my $a = "true nil true\nabort at (353|705)\ncur value: " . (" hello" x 10) . "\\
 
 
 === TEST 10: forcibly override other valid entries and test LRU
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.smalldogs
-            local i = 0
-            while i < 1000 do
-                i = i + 1
-                local val = string.rep(" hello", 10) .. i
-                if i == 10 then
-                    dogs:get("key_1")
-                end
-                local res, err, forcible = dogs:set("key_" .. i, val)
-                if not res or forcible then
-                    ngx.say(res, " ", err, " ", forcible)
-                    break
-                end
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.smalldogs
+        local i = 0
+        while i < 1000 do
+            i = i + 1
+            local val = string.rep(" hello", 10) .. i
+            if i == 10 then
+                dogs:get("key_1")
             end
-            ngx.say("abort at ", i)
-            ngx.say("cur value: ", dogs:get("key_" .. i))
-            if i > 1 then
-                ngx.say("1st value: ", dogs:get("key_1"))
+            local res, err, forcible = dogs:set("key_" .. i, val)
+            if not res or forcible then
+                ngx.say(res, " ", err, " ", forcible)
+                break
             end
-            if i > 2 then
-                ngx.say("2nd value: ", dogs:get("key_2"))
-            end
-        ';
+        end
+        ngx.say("abort at ", i)
+        ngx.say("cur value: ", dogs:get("key_" .. i))
+        if i > 1 then
+        ngx.say("1st value: ", dogs:get("key_1"))
+        end
+        if i > 2 then
+        ngx.say("2nd value: ", dogs:get("key_2"))
+        end
     }
---- pipelined_requests eval
-["GET /test", "GET /test"]
---- response_body eval
+--- stream_response eval
 my $a = "true nil true\nabort at (353|705)\ncur value: " . (" hello" x 10) . "\\1\n1st value: " . (" hello" x 10) . "1\n2nd value: nil\n";
 [qr/$a/,
 "true nil true\nabort at 2\ncur value: " . (" hello" x 10) . "2\n1st value: " . (" hello" x 10) . "1\n"
@@ -309,25 +260,21 @@ my $a = "true nil true\nabort at (353|705)\ncur value: " . (" hello" x 10) . "\\
 
 
 === TEST 11: dogs and cats dicts
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            local cats = t.cats
-            dogs:set("foo", 32)
-            cats:set("foo", "hello, world")
-            ngx.say(dogs:get("foo"))
-            ngx.say(cats:get("foo"))
-            dogs:set("foo", 56)
-            ngx.say(dogs:get("foo"))
-            ngx.say(cats:get("foo"))
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        local cats = t.cats
+        dogs:set("foo", 32)
+        cats:set("foo", "hello, world")
+        ngx.say(dogs:get("foo"))
+        ngx.say(cats:get("foo"))
+        dogs:set("foo", 56)
+        ngx.say(dogs:get("foo"))
+        ngx.say(cats:get("foo"))
     }
---- request
-GET /test
---- response_body
+--- stream_response
 32
 hello, world
 56
@@ -338,19 +285,15 @@ hello, world
 
 
 === TEST 12: get non-existent keys
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            ngx.say(dogs:get("foo"))
-            ngx.say(dogs:get("foo"))
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        ngx.say(dogs:get("foo"))
+        ngx.say(dogs:get("foo"))
     }
---- request
-GET /test
---- response_body
+--- stream_response
 nil
 nil
 --- no_error_log
@@ -360,23 +303,19 @@ nil
 
 === TEST 13: not feed the object into the call
 --- SKIP
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            local rc, err = pcall(dogs.set, "foo", 3, 0.01)
-            ngx.say(rc, " ", err)
-            rc, err = pcall(dogs.set, "foo", 3)
-            ngx.say(rc, " ", err)
-            rc, err = pcall(dogs.get, "foo")
-            ngx.say(rc, " ", err)
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        local rc, err = pcall(dogs.set, "foo", 3, 0.01)
+        ngx.say(rc, " ", err)
+        rc, err = pcall(dogs.set, "foo", 3)
+        ngx.say(rc, " ", err)
+        rc, err = pcall(dogs.get, "foo")
+        ngx.say(rc, " ", err)
     }
---- request
-GET /test
---- response_body
+--- stream_response
 false bad argument #1 to '?' (userdata expected, got string)
 false expecting 3, 4 or 5 arguments, but only seen 2
 false expecting exactly two arguments, but only seen 1
@@ -386,20 +325,16 @@ false expecting exactly two arguments, but only seen 1
 
 
 === TEST 14: too big value
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            collectgarbage("collect")
-            local t = require("resty.shdict")
-            local dogs = t.tinydogs
-            local res, err, forcible = dogs:set("foo", string.rep("helloworld", 10000))
-            ngx.say(res, " ", err, " ", forcible)
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        collectgarbage("collect")
+        local t = require("resty.shdict")
+        local dogs = t.tinydogs
+        local res, err, forcible = dogs:set("foo", string.rep("helloworld", 10000))
+        ngx.say(res, " ", err, " ", forcible)
     }
---- request
-GET /test
---- response_body
+--- stream_response
 false no memory false
 --- log_level: info
 --- no_error_log
@@ -410,30 +345,26 @@ ngx_slab_alloc() failed: no memory in lua_shared_dict zone
 
 
 === TEST 15: set too large key
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            local key = string.rep("a", 65535)
-            local rc, err = dogs:set(key, "hello")
-            ngx.say(rc, " ", err)
-            ngx.say(dogs:get(key))
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        local key = string.rep("a", 65535)
+        local rc, err = dogs:set(key, "hello")
+        ngx.say(rc, " ", err)
+        ngx.say(dogs:get(key))
 
-            key = string.rep("a", 65536)
-            ok, err = dogs:set(key, "world")
-            if not ok then
-                ngx.say("not ok: ", err)
-                return
-            end
-            ngx.say("ok")
+        key = string.rep("a", 65536)
+        ok, err = dogs:set(key, "world")
+        if not ok then
+            ngx.say("not ok: ", err)
+            return
+        end
+        ngx.say("ok")
 
-        ';
     }
---- request
-GET /test
---- response_body
+--- stream_response
 true nil
 hello
 not ok: key too long
@@ -443,23 +374,19 @@ not ok: key too long
 
 
 === TEST 16: bad value type
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            local ok, err = dogs:set("foo", dogs)
-            if not ok then
-                ngx.say("not ok: ", err)
-                return
-            end
-            ngx.say("ok")
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        local ok, err = dogs:set("foo", dogs)
+        if not ok then
+            ngx.say("not ok: ", err)
+            return
+        end
+        ngx.say("ok")
     }
---- request
-GET /test
---- response_body
+--- stream_response
 not ok: bad value type
 --- no_error_log
 [error]
@@ -467,23 +394,19 @@ not ok: bad value type
 
 
 === TEST 17: delete after setting values
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("foo", 32)
-            ngx.say(dogs:get("foo"))
-            dogs:delete("foo")
-            ngx.say(dogs:get("foo"))
-            dogs:set("foo", "hello, world")
-            ngx.say(dogs:get("foo"))
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs:set("foo", 32)
+        ngx.say(dogs:get("foo"))
+        dogs:delete("foo")
+        ngx.say(dogs:get("foo"))
+        dogs:set("foo", "hello, world")
+        ngx.say(dogs:get("foo"))
     }
---- request
-GET /test
---- response_body
+--- stream_response
 32
 nil
 hello, world
@@ -493,21 +416,17 @@ hello, world
 
 
 === TEST 18: delete at first
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:delete("foo")
-            ngx.say(dogs:get("foo"))
-            dogs:set("foo", "hello, world")
-            ngx.say(dogs:get("foo"))
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs:delete("foo")
+        ngx.say(dogs:get("foo"))
+        dogs:set("foo", "hello, world")
+        ngx.say(dogs:get("foo"))
     }
---- request
-GET /test
---- response_body
+--- stream_response
 nil
 hello, world
 --- no_error_log
@@ -516,23 +435,19 @@ hello, world
 
 
 === TEST 19: set nil after setting values
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("foo", 32)
-            ngx.say(dogs:get("foo"))
-            dogs:set("foo", nil)
-            ngx.say(dogs:get("foo"))
-            dogs:set("foo", "hello, world")
-            ngx.say(dogs:get("foo"))
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs:set("foo", 32)
+        ngx.say(dogs:get("foo"))
+        dogs:set("foo", nil)
+        ngx.say(dogs:get("foo"))
+        dogs:set("foo", "hello, world")
+        ngx.say(dogs:get("foo"))
     }
---- request
-GET /test
---- response_body
+--- stream_response
 32
 nil
 hello, world
@@ -542,21 +457,17 @@ hello, world
 
 
 === TEST 20: set nil at first
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("foo", nil)
-            ngx.say(dogs:get("foo"))
-            dogs:set("foo", "hello, world")
-            ngx.say(dogs:get("foo"))
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs:set("foo", nil)
+        ngx.say(dogs:get("foo"))
+        dogs:set("foo", "hello, world")
+        ngx.say(dogs:get("foo"))
     }
---- request
-GET /test
---- response_body
+--- stream_response
 nil
 hello, world
 --- no_error_log
@@ -565,146 +476,42 @@ hello, world
 
 
 === TEST 21: fail to allocate memory
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.smalldogs
-            local i = 0
-            while i < 1000 do
-                i = i + 1
-                local val = string.rep("hello", i )
-                local res, err, forcible = dogs:set("key_" .. i, val)
-                if not res or forcible then
-                    ngx.say(res, " ", err, " ", forcible)
-                    break
-                end
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.smalldogs
+        local i = 0
+        while i < 1000 do
+            i = i + 1
+            local val = string.rep("hello", i )
+            local res, err, forcible = dogs:set("key_" .. i, val)
+            if not res or forcible then
+                ngx.say(res, " ", err, " ", forcible)
+                break
             end
-            ngx.say("abort at ", i)
-        ';
+        end
+        ngx.say("abort at ", i)
     }
---- request
-GET /test
---- response_body_like
+--- stream_response_like
 ^true nil true\nabort at (?:139|140)$
 --- no_error_log
 [error]
 
 
 
-=== TEST 22: string key, int value (write_by_lua)
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        rewrite_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("foo", 32)
-            dogs:set("bah", 10502)
-            local val = dogs:get("foo")
-            ngx.say(val, " ", type(val))
-            val = dogs:get("bah")
-            ngx.say(val, " ", type(val))
-        ';
-        content_by_lua return;
-    }
---- request
-GET /test
---- response_body
-32 number
-10502 number
---- no_error_log
-[error]
-
-
-
-=== TEST 23: string key, int value (access_by_lua)
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        access_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("foo", 32)
-            dogs:set("bah", 10502)
-            local val = dogs:get("foo")
-            ngx.say(val, " ", type(val))
-            val = dogs:get("bah")
-            ngx.say(val, " ", type(val))
-        ';
-        content_by_lua return;
-    }
---- request
-GET /test
---- response_body
-32 number
-10502 number
---- no_error_log
-[error]
-
-
-
-=== TEST 24: string key, int value (set_by_lua)
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        set_by_lua $res '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("foo", 32)
-            return dogs:get("foo")
-        ';
-        echo $res;
-    }
---- request
-GET /test
---- response_body
-32
---- no_error_log
-[error]
-
-
-
-=== TEST 25: string key, int value (header_by_lua)
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        echo hello;
-        header_filter_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("foo", 32)
-            ngx.header["X-Foo"] = dogs:get("foo")
-        ';
-    }
---- request
-GET /test
---- response_headers
-X-Foo: 32
---- response_body
-hello
---- no_error_log
-[error]
-
-
-
 === TEST 26: too big value (forcible)
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            collectgarbage("collect")
-            local t = require("resty.shdict")
-            local dogs = t.tinydogs
-            dogs:set("bah", "hello")
-            local res, err, forcible = dogs:set("foo", string.rep("helloworld", 10000))
-            ngx.say(res, " ", err, " ", forcible)
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        collectgarbage("collect")
+        local t = require("resty.shdict")
+        local dogs = t.tinydogs
+        dogs:set("bah", "hello")
+        local res, err, forcible = dogs:set("foo", string.rep("helloworld", 10000))
+        ngx.say(res, " ", err, " ", forcible)
     }
---- request
-GET /test
---- response_body
+--- stream_response
 false no memory true
 --- log_level: info
 --- no_error_log
@@ -715,21 +522,17 @@ ngx_slab_alloc() failed: no memory in lua_shared_dict zone
 
 
 === TEST 27: add key (key exists)
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("foo", 32)
-            local res, err, forcible = dogs:add("foo", 10502)
-            ngx.say("add: ", res, " ", err, " ", forcible)
-            ngx.say("foo = ", dogs:get("foo"))
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs:set("foo", 32)
+        local res, err, forcible = dogs:add("foo", 10502)
+        ngx.say("add: ", res, " ", err, " ", forcible)
+        ngx.say("foo = ", dogs:get("foo"))
     }
---- request
-GET /test
---- response_body
+--- stream_response
 add: false exists false
 foo = 32
 --- no_error_log
@@ -738,21 +541,17 @@ foo = 32
 
 
 === TEST 28: add key (key not exists)
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("bah", 32)
-            local res, err, forcible = dogs:add("foo", 10502)
-            ngx.say("add: ", res, " ", err, " ", forcible)
-            ngx.say("foo = ", dogs:get("foo"))
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs:set("bah", 32)
+        local res, err, forcible = dogs:add("foo", 10502)
+        ngx.say("add: ", res, " ", err, " ", forcible)
+        ngx.say("foo = ", dogs:get("foo"))
     }
---- request
-GET /test
---- response_body
+--- stream_response
 add: true nil false
 foo = 10502
 --- no_error_log
@@ -761,27 +560,20 @@ foo = 10502
 
 
 === TEST 29: add key (key expired)
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("bar", 32, 0.001)
-            dogs:set("baz", 32, 0.001)
-            dogs:set("foo", 32, 0.001)
-            ngx.location.capture("/sleep/0.002")
-            local res, err, forcible = dogs:add("foo", 10502)
-            ngx.say("add: ", res, " ", err, " ", forcible)
-            ngx.say("foo = ", dogs:get("foo"))
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs:set("bar", 32, 0.001)
+        dogs:set("baz", 32, 0.001)
+        dogs:set("foo", 32, 0.001)
+        ngx.sleep(0.002)
+        local res, err, forcible = dogs:add("foo", 10502)
+        ngx.say("add: ", res, " ", err, " ", forcible)
+        ngx.say("foo = ", dogs:get("foo"))
     }
-    location ~ ^/sleep/(.+) {
-        echo_sleep $1;
-    }
---- request
-GET /test
---- response_body
+--- stream_response
 add: true nil false
 foo = 10502
 --- no_error_log
@@ -790,27 +582,20 @@ foo = 10502
 
 
 === TEST 30: add key (key expired and value size unmatched)
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("bar", 32, 0.001)
-            dogs:set("baz", 32, 0.001)
-            dogs:set("foo", "hi", 0.001)
-            ngx.location.capture("/sleep/0.002")
-            local res, err, forcible = dogs:add("foo", "hello")
-            ngx.say("add: ", res, " ", err, " ", forcible)
-            ngx.say("foo = ", dogs:get("foo"))
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs:set("bar", 32, 0.001)
+        dogs:set("baz", 32, 0.001)
+        dogs:set("foo", "hi", 0.001)
+        ngx.sleep(0.002)
+        local res, err, forcible = dogs:add("foo", "hello")
+        ngx.say("add: ", res, " ", err, " ", forcible)
+        ngx.say("foo = ", dogs:get("foo"))
     }
-    location ~ ^/sleep/(.+) {
-        echo_sleep $1;
-    }
---- request
-GET /test
---- response_body
+--- stream_response
 add: true nil false
 foo = hello
 --- no_error_log
@@ -819,26 +604,22 @@ foo = hello
 
 
 === TEST 31: replace key (key exists)
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("foo", 32)
-            local res, err, forcible = dogs:replace("foo", 10502)
-            ngx.say("replace: ", res, " ", err, " ", forcible)
-            ngx.say("foo = ", dogs:get("foo"))
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs:set("foo", 32)
+        local res, err, forcible = dogs:replace("foo", 10502)
+        ngx.say("replace: ", res, " ", err, " ", forcible)
+        ngx.say("foo = ", dogs:get("foo"))
 
-            local res, err, forcible = dogs:replace("foo", "hello")
-            ngx.say("replace: ", res, " ", err, " ", forcible)
-            ngx.say("foo = ", dogs:get("foo"))
+        local res, err, forcible = dogs:replace("foo", "hello")
+        ngx.say("replace: ", res, " ", err, " ", forcible)
+        ngx.say("foo = ", dogs:get("foo"))
 
-        ';
     }
---- request
-GET /test
---- response_body
+--- stream_response
 replace: true nil false
 foo = 10502
 replace: true nil false
@@ -849,21 +630,17 @@ foo = hello
 
 
 === TEST 32: replace key (key not exists)
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("bah", 32)
-            local res, err, forcible = dogs:replace("foo", 10502)
-            ngx.say("replace: ", res, " ", err, " ", forcible)
-            ngx.say("foo = ", dogs:get("foo"))
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs:set("bah", 32)
+        local res, err, forcible = dogs:replace("foo", 10502)
+        ngx.say("replace: ", res, " ", err, " ", forcible)
+        ngx.say("foo = ", dogs:get("foo"))
     }
---- request
-GET /test
---- response_body
+--- stream_response
 replace: false not found false
 foo = nil
 --- no_error_log
@@ -872,27 +649,20 @@ foo = nil
 
 
 === TEST 33: replace key (key expired)
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("bar", 3, 0.001)
-            dogs:set("baz", 2, 0.001)
-            dogs:set("foo", 32, 0.001)
-            ngx.location.capture("/sleep/0.002")
-            local res, err, forcible = dogs:replace("foo", 10502)
-            ngx.say("replace: ", res, " ", err, " ", forcible)
-            ngx.say("foo = ", dogs:get("foo"))
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs:set("bar", 3, 0.001)
+        dogs:set("baz", 2, 0.001)
+        dogs:set("foo", 32, 0.001)
+        ngx.sleep(0.002)
+        local res, err, forcible = dogs:replace("foo", 10502)
+        ngx.say("replace: ", res, " ", err, " ", forcible)
+        ngx.say("foo = ", dogs:get("foo"))
     }
-    location ~ ^/sleep/(.+) {
-        echo_sleep $1;
-    }
---- request
-GET /test
---- response_body
+--- stream_response
 replace: false not found false
 foo = nil
 --- no_error_log
@@ -901,27 +671,20 @@ foo = nil
 
 
 === TEST 34: replace key (key expired and value size unmatched)
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("bar", 32, 0.001)
-            dogs:set("baz", 32, 0.001)
-            dogs:set("foo", "hi", 0.001)
-            ngx.location.capture("/sleep/0.002")
-            local rc, err, forcible = dogs:replace("foo", "hello")
-            ngx.say("replace: ", rc, " ", err, " ", forcible)
-            ngx.say("foo = ", dogs:get("foo"))
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs:set("bar", 32, 0.001)
+        dogs:set("baz", 32, 0.001)
+        dogs:set("foo", "hi", 0.001)
+        ngx.sleep(0.002)
+        local rc, err, forcible = dogs:replace("foo", "hello")
+        ngx.say("replace: ", rc, " ", err, " ", forcible)
+        ngx.say("foo = ", dogs:get("foo"))
     }
-    location ~ ^/sleep/(.+) {
-        echo_sleep $1;
-    }
---- request
-GET /test
---- response_body
+--- stream_response
 replace: false not found false
 foo = nil
 --- no_error_log
@@ -930,21 +693,17 @@ foo = nil
 
 
 === TEST 35: incr key (key exists)
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("foo", 32)
-            local res, err = dogs:incr("foo", 10502)
-            ngx.say("incr: ", res, " ", err)
-            ngx.say("foo = ", dogs:get("foo"))
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs:set("foo", 32)
+        local res, err = dogs:incr("foo", 10502)
+        ngx.say("incr: ", res, " ", err)
+        ngx.say("foo = ", dogs:get("foo"))
     }
---- request
-GET /test
---- response_body
+--- stream_response
 incr: 10534 nil
 foo = 10534
 --- no_error_log
@@ -953,21 +712,17 @@ foo = 10534
 
 
 === TEST 36: incr key (key not exists)
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("bah", 32)
-            local res, err = dogs:incr("foo", 2)
-            ngx.say("incr: ", res, " ", err)
-            ngx.say("foo = ", dogs:get("foo"))
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs:set("bah", 32)
+        local res, err = dogs:incr("foo", 2)
+        ngx.say("incr: ", res, " ", err)
+        ngx.say("foo = ", dogs:get("foo"))
     }
---- request
-GET /test
---- response_body
+--- stream_response
 incr: nil not found
 foo = nil
 --- no_error_log
@@ -976,27 +731,20 @@ foo = nil
 
 
 === TEST 37: incr key (key expired)
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("bar", 3, 0.001)
-            dogs:set("baz", 2, 0.001)
-            dogs:set("foo", 32, 0.001)
-            ngx.location.capture("/sleep/0.002")
-            local res, err = dogs:incr("foo", 10502)
-            ngx.say("incr: ", res, " ", err)
-            ngx.say("foo = ", dogs:get("foo"))
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs:set("bar", 3, 0.001)
+        dogs:set("baz", 2, 0.001)
+        dogs:set("foo", 32, 0.001)
+        ngx.sleep(0.002)
+        local res, err = dogs:incr("foo", 10502)
+        ngx.say("incr: ", res, " ", err)
+        ngx.say("foo = ", dogs:get("foo"))
     }
-    location ~ ^/sleep/(.+) {
-        echo_sleep $1;
-    }
---- request
-GET /test
---- response_body
+--- stream_response
 incr: nil not found
 foo = nil
 --- no_error_log
@@ -1005,21 +753,17 @@ foo = nil
 
 
 === TEST 38: incr key (incr by 0)
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("foo", 32)
-            local res, err = dogs:incr("foo", 0)
-            ngx.say("incr: ", res, " ", err)
-            ngx.say("foo = ", dogs:get("foo"))
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs:set("foo", 32)
+        local res, err = dogs:incr("foo", 0)
+        ngx.say("incr: ", res, " ", err)
+        ngx.say("foo = ", dogs:get("foo"))
     }
---- request
-GET /test
---- response_body
+--- stream_response
 incr: 32 nil
 foo = 32
 --- no_error_log
@@ -1028,21 +772,17 @@ foo = 32
 
 
 === TEST 39: incr key (incr by floating point number)
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("foo", 32)
-            local res, err = dogs:incr("foo", 0.14)
-            ngx.say("incr: ", res, " ", err)
-            ngx.say("foo = ", dogs:get("foo"))
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs:set("foo", 32)
+        local res, err = dogs:incr("foo", 0.14)
+        ngx.say("incr: ", res, " ", err)
+        ngx.say("foo = ", dogs:get("foo"))
     }
---- request
-GET /test
---- response_body
+--- stream_response
 incr: 32.14 nil
 foo = 32.14
 --- no_error_log
@@ -1051,21 +791,17 @@ foo = 32.14
 
 
 === TEST 40: incr key (incr by negative numbers)
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("foo", 32)
-            local res, err = dogs:incr("foo", -0.14)
-            ngx.say("incr: ", res, " ", err)
-            ngx.say("foo = ", dogs:get("foo"))
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs:set("foo", 32)
+        local res, err = dogs:incr("foo", -0.14)
+        ngx.say("incr: ", res, " ", err)
+        ngx.say("foo = ", dogs:get("foo"))
     }
---- request
-GET /test
---- response_body
+--- stream_response
 incr: 31.86 nil
 foo = 31.86
 --- no_error_log
@@ -1074,21 +810,17 @@ foo = 31.86
 
 
 === TEST 41: incr key (original value is not number)
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("foo", true)
-            local res, err = dogs:incr("foo", -0.14)
-            ngx.say("incr: ", res, " ", err)
-            ngx.say("foo = ", dogs:get("foo"))
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs:set("foo", true)
+        local res, err = dogs:incr("foo", -0.14)
+        ngx.say("incr: ", res, " ", err)
+        ngx.say("foo = ", dogs:get("foo"))
     }
---- request
-GET /test
---- response_body
+--- stream_response
 incr: nil not a number
 foo = true
 --- no_error_log
@@ -1097,25 +829,21 @@ foo = true
 
 
 === TEST 42: get and set with flags
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("foo", 32, 0, 199)
-            dogs:set("bah", 10502, 202)
-            local val, flags = dogs:get("foo")
-            ngx.say(val, " ", type(val))
-            ngx.say(flags, " ", type(flags))
-            val, flags = dogs:get("bah")
-            ngx.say(val, " ", type(val))
-            ngx.say(flags, " ", type(flags))
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs:set("foo", 32, 0, 199)
+        dogs:set("bah", 10502, 202)
+        local val, flags = dogs:get("foo")
+        ngx.say(val, " ", type(val))
+        ngx.say(flags, " ", type(flags))
+        val, flags = dogs:get("bah")
+        ngx.say(val, " ", type(val))
+        ngx.say(flags, " ", type(flags))
     }
---- request
-GET /test
---- response_body
+--- stream_response
 32 number
 199 number
 10502 number
@@ -1126,24 +854,17 @@ nil nil
 
 
 === TEST 43: expired entries (can be auto-removed by get), with flags set
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("foo", 32, 0.01, 255)
-            ngx.location.capture("/sleep/0.01")
-            local res, flags = dogs:get("foo")
-            ngx.say("res = ", res, ", flags = ", flags)
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs:set("foo", 32, 0.01, 255)
+        ngx.sleep(0.01)
+        local res, flags = dogs:get("foo")
+        ngx.say("res = ", res, ", flags = ", flags)
     }
-    location ~ '^/sleep/(.+)' {
-        echo_sleep $1;
-    }
---- request
-GET /test
---- response_body
+--- stream_response
 res = nil, flags = nil
 --- no_error_log
 [error]
@@ -1151,31 +872,27 @@ res = nil, flags = nil
 
 
 === TEST 44: flush_all
---- http_config eval: $::HttpConfig
---- config
-    location = /t {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("foo", 32)
-            dogs:set("bah", 10502)
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs:set("foo", 32)
+        dogs:set("bah", 10502)
 
-            local val = dogs:get("foo")
-            ngx.say(val, " ", type(val))
-            val = dogs:get("bah")
-            ngx.say(val, " ", type(val))
+        local val = dogs:get("foo")
+        ngx.say(val, " ", type(val))
+        val = dogs:get("bah")
+        ngx.say(val, " ", type(val))
 
-            dogs:flush_all()
+        dogs:flush_all()
 
-            val = dogs:get("foo")
-            ngx.say(val, " ", type(val))
-            val = dogs:get("bah")
-            ngx.say(val, " ", type(val))
-        ';
+        val = dogs:get("foo")
+        ngx.say(val, " ", type(val))
+        val = dogs:get("bah")
+        ngx.say(val, " ", type(val))
     }
---- request
-GET /t
---- response_body
+--- stream_response
 32 number
 10502 number
 nil nil
@@ -1186,25 +903,21 @@ nil nil
 
 
 === TEST 45: flush_expires
---- http_config eval: $::HttpConfig
---- config
-    location = /t {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("foo", "x", 1)
-            dogs:set("bah", "y", 0)
-            dogs:set("bar", "z", 100)
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs:set("foo", "x", 1)
+        dogs:set("bah", "y", 0)
+        dogs:set("bar", "z", 100)
 
-            ngx.sleep(1.5)
+        ngx.sleep(1.5)
 
-            local num = dogs:flush_expired()
-            ngx.say(num)
-        ';
+        local num = dogs:flush_expired()
+        ngx.say(num)
     }
---- request
-GET /t
---- response_body
+--- stream_response
 1
 --- no_error_log
 [error]
@@ -1212,29 +925,25 @@ GET /t
 
 
 === TEST 46: flush_expires with number
---- http_config eval: $::HttpConfig
---- config
-    location = /t {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
 
-            for i=1,100 do
-                dogs:set(tostring(i), "x", 1)
-            end
+        for i=1,100 do
+            dogs:set(tostring(i), "x", 1)
+        end
 
-            dogs:set("bah", "y", 0)
-            dogs:set("bar", "z", 100)
+        dogs:set("bah", "y", 0)
+        dogs:set("bar", "z", 100)
 
-            ngx.sleep(1.5)
+        ngx.sleep(1.5)
 
-            local num = dogs:flush_expired(42)
-            ngx.say(num)
-        ';
+        local num = dogs:flush_expired(42)
+        ngx.say(num)
     }
---- request
-GET /t
---- response_body
+--- stream_response
 42
 --- no_error_log
 [error]
@@ -1242,20 +951,16 @@ GET /t
 
 
 === TEST 47: flush_expires an empty dict
---- http_config eval: $::HttpConfig
---- config
-    location = /t {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
 
-            local num = dogs:flush_expired()
-            ngx.say(num)
-        ';
+        local num = dogs:flush_expired()
+        ngx.say(num)
     }
---- request
-GET /t
---- response_body
+--- stream_response
 0
 --- no_error_log
 [error]
@@ -1263,23 +968,19 @@ GET /t
 
 
 === TEST 48: flush_expires a dict without expired items
---- http_config eval: $::HttpConfig
---- config
-    location = /t {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
 
-            dogs:set("bah", "y", 0)
-            dogs:set("bar", "z", 100)
+        dogs:set("bah", "y", 0)
+        dogs:set("bar", "z", 100)
 
-            local num = dogs:flush_expired()
-            ngx.say(num)
-        ';
+        local num = dogs:flush_expired()
+        ngx.say(num)
     }
---- request
-GET /t
---- response_body
+--- stream_response
 0
 --- no_error_log
 [error]
@@ -1287,26 +988,22 @@ GET /t
 
 
 === TEST 49: list all keys in a shdict
---- http_config eval: $::HttpConfig
---- config
-    location = /t {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
 
-            dogs:set("bah", "y", 0)
-            dogs:set("bar", "z", 0)
-            local keys = dogs:get_keys()
-            ngx.say(#keys)
-            table.sort(keys)
-            for _,k in ipairs(keys) do
-                ngx.say(k)
-            end
-        ';
+        dogs:set("bah", "y", 0)
+        dogs:set("bar", "z", 0)
+        local keys = dogs:get_keys()
+        ngx.say(#keys)
+        table.sort(keys)
+        for _,k in ipairs(keys) do
+        ngx.say(k)
+        end
     }
---- request
-GET /t
---- response_body
+--- stream_response
 2
 bah
 bar
@@ -1316,22 +1013,18 @@ bar
 
 
 === TEST 50: list keys in a shdict with limit
---- http_config eval: $::HttpConfig
---- config
-    location = /t {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
 
-            dogs:set("bah", "y", 0)
-            dogs:set("bar", "z", 0)
-            local keys = dogs:get_keys(1)
-            ngx.say(#keys)
-        ';
+        dogs:set("bah", "y", 0)
+        dogs:set("bar", "z", 0)
+        local keys = dogs:get_keys(1)
+        ngx.say(#keys)
     }
---- request
-GET /t
---- response_body
+--- stream_response
 1
 --- no_error_log
 [error]
@@ -1339,25 +1032,21 @@ GET /t
 
 
 === TEST 51: list all keys in a shdict with expires
---- http_config eval: $::HttpConfig
---- config
-    location = /t {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("foo", "x", 1)
-            dogs:set("bah", "y", 0)
-            dogs:set("bar", "z", 100)
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs:set("foo", "x", 1)
+        dogs:set("bah", "y", 0)
+        dogs:set("bar", "z", 100)
 
-            ngx.sleep(1.5)
+        ngx.sleep(1.5)
 
-            local keys = dogs:get_keys()
-            ngx.say(#keys)
-        ';
+        local keys = dogs:get_keys()
+        ngx.say(#keys)
     }
---- request
-GET /t
---- response_body
+--- stream_response
 2
 --- no_error_log
 [error]
@@ -1365,22 +1054,18 @@ GET /t
 
 
 === TEST 52: list keys in a shdict with limit larger than number of keys
---- http_config eval: $::HttpConfig
---- config
-    location = /t {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
 
-            dogs:set("bah", "y", 0)
-            dogs:set("bar", "z", 0)
-            local keys = dogs:get_keys(3)
-            ngx.say(#keys)
-        ';
+        dogs:set("bah", "y", 0)
+        dogs:set("bar", "z", 0)
+        local keys = dogs:get_keys(3)
+        ngx.say(#keys)
     }
---- request
-GET /t
---- response_body
+--- stream_response
 2
 --- no_error_log
 [error]
@@ -1388,19 +1073,15 @@ GET /t
 
 
 === TEST 53: list keys in an empty shdict
---- http_config eval: $::HttpConfig
---- config
-    location = /t {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            local keys = dogs:get_keys()
-            ngx.say(#keys)
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        local keys = dogs:get_keys()
+        ngx.say(#keys)
     }
---- request
-GET /t
---- response_body
+--- stream_response
 0
 --- no_error_log
 [error]
@@ -1408,19 +1089,15 @@ GET /t
 
 
 === TEST 54: list keys in an empty shdict with a limit
---- http_config eval: $::HttpConfig
---- config
-    location = /t {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            local keys = dogs:get_keys(4)
-            ngx.say(#keys)
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        local keys = dogs:get_keys(4)
+        ngx.say(#keys)
     }
---- request
-GET /t
---- response_body
+--- stream_response
 0
 --- no_error_log
 [error]
@@ -1428,25 +1105,21 @@ GET /t
 
 
 === TEST 55: list all keys in a shdict with all keys expired
---- http_config eval: $::HttpConfig
---- config
-    location = /t {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("foo", "x", 1)
-            dogs:set("bah", "y", 1)
-            dogs:set("bar", "z", 1)
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs:set("foo", "x", 1)
+        dogs:set("bah", "y", 1)
+        dogs:set("bar", "z", 1)
 
-            ngx.sleep(1.5)
+        ngx.sleep(1.5)
 
-            local keys = dogs:get_keys()
-            ngx.say(#keys)
-        ';
+        local keys = dogs:get_keys()
+        ngx.say(#keys)
     }
---- request
-GET /t
---- response_body
+--- stream_response
 0
 --- no_error_log
 [error]
@@ -1454,22 +1127,18 @@ GET /t
 
 
 === TEST 56: list all keys in a shdict with more than 1024 keys with no limit set
---- http_config eval: $::HttpConfig
---- config
-    location = /t {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            for i=1,2048 do
-                dogs:set(tostring(i), i)
-            end
-            local keys = dogs:get_keys()
-            ngx.say(#keys)
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        for i=1,2048 do
+            dogs:set(tostring(i), i)
+        end
+        local keys = dogs:get_keys()
+        ngx.say(#keys)
     }
---- request
-GET /t
---- response_body
+--- stream_response
 1024
 --- no_error_log
 [error]
@@ -1477,22 +1146,18 @@ GET /t
 
 
 === TEST 57: list all keys in a shdict with more than 1024 keys with 0 limit set
---- http_config eval: $::HttpConfig
---- config
-    location = /t {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            for i=1,2048 do
-                dogs:set(tostring(i), i)
-            end
-            local keys = dogs:get_keys(0)
-            ngx.say(#keys)
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        for i=1,2048 do
+            dogs:set(tostring(i), i)
+        end
+        local keys = dogs:get_keys(0)
+        ngx.say(#keys)
     }
---- request
-GET /t
---- response_body
+--- stream_response
 2048
 --- no_error_log
 [error]
@@ -1500,35 +1165,31 @@ GET /t
 
 
 === TEST 58: safe_set
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.smalldogs
-            local i = 0
-            while i < 1000 do
-                i = i + 1
-                local val = string.rep(" hello", 10) .. i
-                local res, err = dogs:safe_set("key_" .. i, val)
-                if not res then
-                    ngx.say(res, " ", err)
-                    break
-                end
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.smalldogs
+        local i = 0
+        while i < 1000 do
+            i = i + 1
+            local val = string.rep(" hello", 10) .. i
+            local res, err = dogs:safe_set("key_" .. i, val)
+            if not res then
+                ngx.say(res, " ", err)
+                break
             end
-            ngx.say("abort at ", i)
-            ngx.say("cur value: ", dogs:get("key_" .. i))
-            if i > 1 then
-                ngx.say("1st value: ", dogs:get("key_1"))
-            end
-            if i > 2 then
-                ngx.say("2nd value: ", dogs:get("key_2"))
-            end
-        ';
+        end
+        ngx.say("abort at ", i)
+        ngx.say("cur value: ", dogs:get("key_" .. i))
+        if i > 1 then
+            ngx.say("1st value: ", dogs:get("key_1"))
+        end
+        if i > 2 then
+            ngx.say("2nd value: ", dogs:get("key_2"))
+        end
     }
---- pipelined_requests eval
-["GET /test", "GET /test"]
---- response_body eval
+--- stream_response eval
 my $a = "false no memory\nabort at (353|705)\ncur value: nil\n1st value: " . (" hello" x 10) . "1\n2nd value: " . (" hello" x 10) . "2\n";
 [qr/$a/, qr/$a/]
 --- no_error_log
@@ -1537,35 +1198,31 @@ my $a = "false no memory\nabort at (353|705)\ncur value: nil\n1st value: " . (" 
 
 
 === TEST 59: safe_add
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.smalldogs
-            local i = 0
-            while i < 1000 do
-                i = i + 1
-                local val = string.rep(" hello", 10) .. i
-                local res, err = dogs:safe_add("key_" .. i, val)
-                if not res then
-                    ngx.say(res, " ", err)
-                    break
-                end
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.smalldogs
+        local i = 0
+        while i < 1000 do
+            i = i + 1
+            local val = string.rep(" hello", 10) .. i
+            local res, err = dogs:safe_add("key_" .. i, val)
+            if not res then
+                ngx.say(res, " ", err)
+                break
             end
-            ngx.say("abort at ", i)
-            ngx.say("cur value: ", dogs:get("key_" .. i))
-            if i > 1 then
-                ngx.say("1st value: ", dogs:get("key_1"))
-            end
-            if i > 2 then
-                ngx.say("2nd value: ", dogs:get("key_2"))
-            end
-        ';
+        end
+        ngx.say("abort at ", i)
+        ngx.say("cur value: ", dogs:get("key_" .. i))
+        if i > 1 then
+            ngx.say("1st value: ", dogs:get("key_1"))
+        end
+        if i > 2 then
+            ngx.say("2nd value: ", dogs:get("key_2"))
+        end
     }
---- pipelined_requests eval
-["GET /test", "GET /test"]
---- response_body eval
+--- stream_response eval
 my $a = "false no memory\nabort at (353|705)\ncur value: nil\n1st value: " . (" hello" x 10) . "1\n2nd value: " . (" hello" x 10) . "2\n";
 [qr/$a/,
 q{false exists
@@ -1579,24 +1236,20 @@ cur value:  hello hello hello hello hello hello hello hello hello hello1
 
 
 === TEST 60: get_stale: expired entries can still be fetched
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("foo", 32, 0.01)
-            dogs:set("blah", 33, 0.3)
-            ngx.sleep(0.02)
-            local val, flags, stale = dogs:get_stale("foo")
-            ngx.say(val, ", ", flags, ", ", stale)
-            local val, flags, stale = dogs:get_stale("blah")
-            ngx.say(val, ", ", flags, ", ", stale)
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs:set("foo", 32, 0.01)
+        dogs:set("blah", 33, 0.3)
+        ngx.sleep(0.02)
+        local val, flags, stale = dogs:get_stale("foo")
+        ngx.say(val, ", ", flags, ", ", stale)
+        local val, flags, stale = dogs:get_stale("blah")
+        ngx.say(val, ", ", flags, ", ", stale)
     }
---- request
-GET /test
---- response_body
+--- stream_response
 32, nil, true
 33, nil, false
 --- no_error_log
@@ -1605,23 +1258,19 @@ GET /test
 
 
 === TEST 61: set nil key
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            local ok, err = dogs:set(nil, 32)
-            if not ok then
-                ngx.say("not ok: ", err)
-                return
-            end
-            ngx.say("ok")
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        local ok, err = dogs:set(nil, 32)
+        if not ok then
+            ngx.say("not ok: ", err)
+            return
+        end
+        ngx.say("ok")
     }
---- request
-GET /test
---- response_body
+--- stream_response
 not ok: nil key
 --- no_error_log
 [error]
@@ -1629,47 +1278,38 @@ not ok: nil key
 
 
 === TEST 62: set bad zone argument
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            local ok, err = dogs.set(nil, "foo", 32)
-            if not ok then
-                ngx.say("not ok: ", err)
-                return
-            end
-            ngx.say("ok")
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        local ok, err = dogs.set(nil, "foo", 32)
+        if not ok then
+            ngx.say("not ok: ", err)
+            return
+        end
+        ngx.say("ok")
     }
---- request
-GET /test
---- response_body_like: 500 Internal Server Error
---- error_code: 500
+--- stream_response
 --- error_log
 bad "zone" argument
 
 
 
 === TEST 63: set empty string keys
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            local ok, err = dogs:set("", 32)
-            if not ok then
-                ngx.say("not ok: ", err)
-                return
-            end
-            ngx.say("ok")
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        local ok, err = dogs:set("", 32)
+        if not ok then
+            ngx.say("not ok: ", err)
+            return
+        end
+        ngx.say("ok")
     }
---- request
-GET /test
---- response_body
+--- stream_response
 not ok: empty key
 --- no_error_log
 [error]
@@ -1677,47 +1317,38 @@ not ok: empty key
 
 
 === TEST 64: get bad zone argument
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            local ok, err = dogs.get(nil, "foo")
-            if not ok then
-                ngx.say("not ok: ", err)
-                return
-            end
-            ngx.say("ok")
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        local ok, err = dogs.get(nil, "foo")
+        if not ok then
+            ngx.say("not ok: ", err)
+            return
+        end
+        ngx.say("ok")
     }
---- request
-GET /test
---- response_body_like: 500 Internal Server Error
---- error_code: 500
+--- stream_response
 --- error_log
 bad "zone" argument
 
 
 
 === TEST 65: get nil key
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            local ok, err = dogs:get(nil)
-            if not ok then
-                ngx.say("not ok: ", err)
-                return
-            end
-            ngx.say("ok")
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        local ok, err = dogs:get(nil)
+        if not ok then
+            ngx.say("not ok: ", err)
+            return
+        end
+        ngx.say("ok")
     }
---- request
-GET /test
---- response_body
+--- stream_response
 not ok: nil key
 --- no_error_log
 [error]
@@ -1725,23 +1356,19 @@ not ok: nil key
 
 
 === TEST 66: get empty key
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            local ok, err = dogs:get("")
-            if not ok then
-                ngx.say("not ok: ", err)
-                return
-            end
-            ngx.say("ok")
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        local ok, err = dogs:get("")
+        if not ok then
+            ngx.say("not ok: ", err)
+            return
+        end
+        ngx.say("ok")
     }
---- request
-GET /test
---- response_body
+--- stream_response
 not ok: empty key
 --- no_error_log
 [error]
@@ -1749,23 +1376,19 @@ not ok: empty key
 
 
 === TEST 67: get a too-long key
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            local ok, err = dogs:get(string.rep("a", 65536))
-            if not ok then
-                ngx.say("not ok: ", err)
-                return
-            end
-            ngx.say("ok")
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        local ok, err = dogs:get(string.rep("a", 65536))
+        if not ok then
+            ngx.say("not ok: ", err)
+            return
+        end
+        ngx.say("ok")
     }
---- request
-GET /test
---- response_body
+--- stream_response
 not ok: key too long
 --- no_error_log
 [error]
@@ -1773,31 +1396,27 @@ not ok: key too long
 
 
 === TEST 68: set & get large values
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            local ok, err = dogs:set("foo", string.rep("helloworld", 1024))
-            if not ok then
-                ngx.say("set not ok: ", err)
-                return
-            end
-            ngx.say("set ok")
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        local ok, err = dogs:set("foo", string.rep("helloworld", 1024))
+        if not ok then
+            ngx.say("set not ok: ", err)
+            return
+        end
+        ngx.say("set ok")
 
-            local data, err = dogs:get("foo")
-            if data == nil and err then
-                ngx.say("get not ok: ", err)
-                return
-            end
-            ngx.say("get ok: ", #data)
+        local data, err = dogs:get("foo")
+        if data == nil and err then
+            ngx.say("get not ok: ", err)
+            return
+        end
+        ngx.say("get ok: ", #data)
 
-        ';
     }
---- request
-GET /test
---- response_body
+--- stream_response
 set ok
 get ok: 10240
 --- no_error_log
@@ -1806,23 +1425,19 @@ get ok: 10240
 
 
 === TEST 69: get_stale nil key
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            local ok, err = dogs:get_stale(nil)
-            if not ok then
-                ngx.say("not ok: ", err)
-                return
-            end
-            ngx.say("ok")
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        local ok, err = dogs:get_stale(nil)
+        if not ok then
+            ngx.say("not ok: ", err)
+            return
+        end
+        ngx.say("ok")
     }
---- request
-GET /test
---- response_body
+--- stream_response
 not ok: nil key
 --- no_error_log
 [error]
@@ -1830,23 +1445,19 @@ not ok: nil key
 
 
 === TEST 70: get_stale empty key
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            local ok, err = dogs:get_stale("")
-            if not ok then
-                ngx.say("not ok: ", err)
-                return
-            end
-            ngx.say("ok")
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        local ok, err = dogs:get_stale("")
+        if not ok then
+            ngx.say("not ok: ", err)
+            return
+        end
+        ngx.say("ok")
     }
---- request
-GET /test
---- response_body
+--- stream_response
 not ok: empty key
 --- no_error_log
 [error]
@@ -1854,29 +1465,25 @@ not ok: empty key
 
 
 === TEST 71: get_stale number key
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            local ok, err = dogs:set(1024, "hello")
-            if not ok then
-                ngx.say("set not ok: ", err)
-                return
-            end
-            ngx.say("set ok")
-            local data, err = dogs:get_stale(1024)
-            if not ok then
-                ngx.say("get_stale not ok: ", err)
-                return
-            end
-            ngx.say("get_stale: ", data)
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        local ok, err = dogs:set(1024, "hello")
+        if not ok then
+            ngx.say("set not ok: ", err)
+            return
+        end
+        ngx.say("set ok")
+        local data, err = dogs:get_stale(1024)
+        if not ok then
+            ngx.say("get_stale not ok: ", err)
+            return
+        end
+        ngx.say("get_stale: ", data)
     }
---- request
-GET /test
---- response_body
+--- stream_response
 set ok
 get_stale: hello
 --- no_error_log
@@ -1885,23 +1492,19 @@ get_stale: hello
 
 
 === TEST 72: get_stale a too-long key
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            local ok, err = dogs:get_stale(string.rep("a", 65536))
-            if not ok then
-                ngx.say("not ok: ", err)
-                return
-            end
-            ngx.say("ok")
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        local ok, err = dogs:get_stale(string.rep("a", 65536))
+        if not ok then
+            ngx.say("not ok: ", err)
+            return
+        end
+        ngx.say("ok")
     }
---- request
-GET /test
---- response_body
+--- stream_response
 not ok: key too long
 --- no_error_log
 [error]
@@ -1909,23 +1512,19 @@ not ok: key too long
 
 
 === TEST 73: get_stale a non-existent key
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            local data, err = dogs:get_stale("not_found")
-            if data == nil and err then
-                ngx.say("get not ok: ", err)
-                return
-            end
-            ngx.say("get ok: ", data)
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        local data, err = dogs:get_stale("not_found")
+        if data == nil and err then
+            ngx.say("get not ok: ", err)
+            return
+        end
+        ngx.say("get ok: ", data)
     }
---- request
-GET /test
---- response_body
+--- stream_response
 get ok: nil
 --- no_error_log
 [error]
@@ -1933,31 +1532,27 @@ get ok: nil
 
 
 === TEST 74: set & get_stale large values
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            local ok, err = dogs:set("foo", string.rep("helloworld", 1024))
-            if not ok then
-                ngx.say("set not ok: ", err)
-                return
-            end
-            ngx.say("set ok")
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        local ok, err = dogs:set("foo", string.rep("helloworld", 1024))
+        if not ok then
+            ngx.say("set not ok: ", err)
+            return
+        end
+        ngx.say("set ok")
 
-            local data, err, stale = dogs:get_stale("foo")
-            if data == nil and err then
-                ngx.say("get not ok: ", err)
-                return
-            end
-            ngx.say("get_stale ok: ", #data, ", stale: ", stale)
+        local data, err, stale = dogs:get_stale("foo")
+        if data == nil and err then
+            ngx.say("get not ok: ", err)
+            return
+        end
+        ngx.say("get_stale ok: ", #data, ", stale: ", stale)
 
-        ';
     }
---- request
-GET /test
---- response_body
+--- stream_response
 set ok
 get_stale ok: 10240, stale: false
 --- no_error_log
@@ -1966,31 +1561,27 @@ get_stale ok: 10240, stale: false
 
 
 === TEST 75: set & get_stale boolean values (true)
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            local ok, err = dogs:set("foo", true)
-            if not ok then
-                ngx.say("set not ok: ", err)
-                return
-            end
-            ngx.say("set ok")
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        local ok, err = dogs:set("foo", true)
+        if not ok then
+            ngx.say("set not ok: ", err)
+            return
+        end
+        ngx.say("set ok")
 
-            local data, err, stale = dogs:get_stale("foo")
-            if data == nil and err then
-                ngx.say("get not ok: ", err)
-                return
-            end
-            ngx.say("get_stale ok: ", data, ", stale: ", stale)
+        local data, err, stale = dogs:get_stale("foo")
+        if data == nil and err then
+            ngx.say("get not ok: ", err)
+            return
+        end
+        ngx.say("get_stale ok: ", data, ", stale: ", stale)
 
-        ';
     }
---- request
-GET /test
---- response_body
+--- stream_response
 set ok
 get_stale ok: true, stale: false
 --- no_error_log
@@ -1999,31 +1590,27 @@ get_stale ok: true, stale: false
 
 
 === TEST 76: set & get_stale boolean values (false)
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            local ok, err = dogs:set("foo", false)
-            if not ok then
-                ngx.say("set not ok: ", err)
-                return
-            end
-            ngx.say("set ok")
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        local ok, err = dogs:set("foo", false)
+        if not ok then
+            ngx.say("set not ok: ", err)
+            return
+        end
+        ngx.say("set ok")
 
-            local data, err, stale = dogs:get_stale("foo")
-            if data == nil and err then
-                ngx.say("get not ok: ", err)
-                return
-            end
-            ngx.say("get_stale ok: ", data, ", stale: ", stale)
+        local data, err, stale = dogs:get_stale("foo")
+        if data == nil and err then
+            ngx.say("get not ok: ", err)
+            return
+        end
+        ngx.say("get_stale ok: ", data, ", stale: ", stale)
 
-        ';
     }
---- request
-GET /test
---- response_body
+--- stream_response
 set ok
 get_stale ok: false, stale: false
 --- no_error_log
@@ -2032,33 +1619,29 @@ get_stale ok: false, stale: false
 
 
 === TEST 77: set & get_stale with a flag
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            local ok, err = dogs:set("foo", false, 0, 325)
-            if not ok then
-                ngx.say("set not ok: ", err)
-                return
-            end
-            ngx.say("set ok")
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        local ok, err = dogs:set("foo", false, 0, 325)
+        if not ok then
+            ngx.say("set not ok: ", err)
+            return
+        end
+        ngx.say("set ok")
 
-            local data, err, stale = dogs:get_stale("foo")
-            if data == nil and err then
-                ngx.say("get not ok: ", err)
-                return
-            end
-            flags = err
-            ngx.say("get_stale ok: ", data, ", flags: ", flags,
-                    ", stale: ", stale)
+        local data, err, stale = dogs:get_stale("foo")
+        if data == nil and err then
+            ngx.say("get not ok: ", err)
+            return
+        end
+        flags = err
+        ngx.say("get_stale ok: ", data, ", flags: ", flags,
+            ", stale: ", stale)
 
-        ';
     }
---- request
-GET /test
---- response_body
+--- stream_response
 set ok
 get_stale ok: false, flags: 325, stale: false
 --- no_error_log
@@ -2067,23 +1650,19 @@ get_stale ok: false, flags: 325, stale: false
 
 
 === TEST 78: incr nil key
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            local ok, err = dogs:incr(nil, 32)
-            if not ok then
-                ngx.say("not ok: ", err)
-                return
-            end
-            ngx.say("ok")
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        local ok, err = dogs:incr(nil, 32)
+        if not ok then
+            ngx.say("not ok: ", err)
+            return
+        end
+        ngx.say("ok")
     }
---- request
-GET /test
---- response_body
+--- stream_response
 not ok: nil key
 --- no_error_log
 [error]
@@ -2091,47 +1670,38 @@ not ok: nil key
 
 
 === TEST 79: incr bad zone argument
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            local ok, err = dogs.incr(nil, "foo", 32)
-            if not ok then
-                ngx.say("not ok: ", err)
-                return
-            end
-            ngx.say("ok")
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        local ok, err = dogs.incr(nil, "foo", 32)
+        if not ok then
+            ngx.say("not ok: ", err)
+            return
+        end
+        ngx.say("ok")
     }
---- request
-GET /test
---- response_body_like: 500 Internal Server Error
---- error_code: 500
+--- stream_response
 --- error_log
 bad "zone" argument
 
 
 
 === TEST 80: incr empty string keys
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            local ok, err = dogs:incr("", 32)
-            if not ok then
-                ngx.say("not ok: ", err)
-                return
-            end
-            ngx.say("ok")
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        local ok, err = dogs:incr("", 32)
+        if not ok then
+            ngx.say("not ok: ", err)
+            return
+        end
+        ngx.say("ok")
     }
---- request
-GET /test
---- response_body
+--- stream_response
 not ok: empty key
 --- no_error_log
 [error]
@@ -2139,25 +1709,21 @@ not ok: empty key
 
 
 === TEST 81: incr too long key
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            local key = string.rep("a", 65536)
-            local ok, err = dogs:incr(key, 32)
-            if not ok then
-                ngx.say("not ok: ", err)
-                return
-            end
-            ngx.say("ok")
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        local key = string.rep("a", 65536)
+        local ok, err = dogs:incr(key, 32)
+        if not ok then
+            ngx.say("not ok: ", err)
+            return
+        end
+        ngx.say("ok")
 
-        ';
     }
---- request
-GET /test
---- response_body
+--- stream_response
 not ok: key too long
 --- no_error_log
 [error]
@@ -2165,38 +1731,34 @@ not ok: key too long
 
 
 === TEST 82: incr number key
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            local key = 56
-            local ok, err = dogs:set(key, 1)
-            if not ok then
-                ngx.say("set not ok: ", err)
-                return
-            end
-            ngx.say("set ok")
-            ok, err = dogs:incr(key, 32)
-            if not ok then
-                ngx.say("incr not ok: ", err)
-                return
-            end
-            ngx.say("incr ok")
-            local data, err = dogs:get(key)
-            if data == nil and err then
-                ngx.say("get not ok: ", err)
-                return
-            end
-            local flags = err
-            ngx.say("get ok: ", data, ", flags: ", flags)
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        local key = 56
+        local ok, err = dogs:set(key, 1)
+        if not ok then
+            ngx.say("set not ok: ", err)
+            return
+        end
+        ngx.say("set ok")
+        ok, err = dogs:incr(key, 32)
+        if not ok then
+            ngx.say("incr not ok: ", err)
+            return
+        end
+        ngx.say("incr ok")
+        local data, err = dogs:get(key)
+        if data == nil and err then
+            ngx.say("get not ok: ", err)
+            return
+        end
+        local flags = err
+        ngx.say("get ok: ", data, ", flags: ", flags)
 
-        ';
     }
---- request
-GET /test
---- response_body
+--- stream_response
 set ok
 incr ok
 get ok: 33, flags: nil
@@ -2206,38 +1768,34 @@ get ok: 33, flags: nil
 
 
 === TEST 83: incr a number-like string key
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            local key = 56
-            local ok, err = dogs:set(key, 1)
-            if not ok then
-                ngx.say("set not ok: ", err)
-                return
-            end
-            ngx.say("set ok")
-            ok, err = dogs:incr(key, "32")
-            if not ok then
-                ngx.say("incr not ok: ", err)
-                return
-            end
-            ngx.say("incr ok")
-            local data, err = dogs:get(key)
-            if data == nil and err then
-                ngx.say("get not ok: ", err)
-                return
-            end
-            local flags = err
-            ngx.say("get ok: ", data, ", flags: ", flags)
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        local key = 56
+        local ok, err = dogs:set(key, 1)
+        if not ok then
+            ngx.say("set not ok: ", err)
+            return
+        end
+        ngx.say("set ok")
+        ok, err = dogs:incr(key, "32")
+        if not ok then
+            ngx.say("incr not ok: ", err)
+            return
+        end
+        ngx.say("incr ok")
+        local data, err = dogs:get(key)
+        if data == nil and err then
+        ngx.say("get not ok: ", err)
+            return
+        end
+        local flags = err
+        ngx.say("get ok: ", data, ", flags: ", flags)
 
-        ';
     }
---- request
-GET /test
---- response_body
+--- stream_response
 set ok
 incr ok
 get ok: 33, flags: nil
@@ -2247,23 +1805,19 @@ get ok: 33, flags: nil
 
 
 === TEST 84: add nil values
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            local ok, err = dogs:add("foo", nil)
-            if not ok then
-                ngx.say("not ok: ", err)
-                return
-            end
-            ngx.say("ok")
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        local ok, err = dogs:add("foo", nil)
+        if not ok then
+            ngx.say("not ok: ", err)
+            return
+        end
+        ngx.say("ok")
     }
---- request
-GET /test
---- response_body
+--- stream_response
 not ok: attempt to add or replace nil values
 --- no_error_log
 [error]
@@ -2271,28 +1825,21 @@ not ok: attempt to add or replace nil values
 
 
 === TEST 85: replace key with exptime
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("foo", 2, 0)
-            dogs:replace("foo", 32, 0.01)
-            local data = dogs:get("foo")
-            ngx.say("get foo: ", data)
-            ngx.location.capture("/sleep/0.02")
-            local res, err, forcible = dogs:replace("foo", 10502)
-            ngx.say("replace: ", res, " ", err, " ", forcible)
-            ngx.say("foo = ", dogs:get("foo"))
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs:set("foo", 2, 0)
+        dogs:replace("foo", 32, 0.01)
+        local data = dogs:get("foo")
+        ngx.say("get foo: ", data)
+        ngx.sleep(0.02)
+        local res, err, forcible = dogs:replace("foo", 10502)
+        ngx.say("replace: ", res, " ", err, " ", forcible)
+        ngx.say("foo = ", dogs:get("foo"))
     }
-    location ~ ^/sleep/(.+) {
-        echo_sleep $1;
-    }
---- request
-GET /test
---- response_body
+--- stream_response
 get foo: 32
 replace: false not found false
 foo = nil
@@ -2302,18 +1849,13 @@ foo = nil
 
 
 === TEST 86: the lightuserdata ngx.null has no methods of shared dicts.
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local lightuserdata = ngx.null
-            lightuserdata:set("foo", 1)
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local lightuserdata = ngx.null
+        lightuserdata:set("foo", 1)
     }
---- request
-GET /test
---- response_body_like: 500 Internal Server Error
---- error_code: 500
+--- stream_response
 --- grep_error_log chop
 attempt to index local 'lightuserdata' (a userdata value)
 --- grep_error_log_out
@@ -2326,73 +1868,54 @@ bad "zone" argument
 
 
 === TEST 87: set bad zone table
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs.set({1}, "foo", 1)
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs.set({1}, "foo", 1)
     }
---- request
-GET /test
---- response_body_like: 500 Internal Server Error
---- error_code: 500
+--- stream_response
 --- error_log
 bad "zone" argument
 
 
 
 === TEST 88: get bad zone table
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs.get({1}, "foo")
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs.get({1}, "foo")
     }
---- request
-GET /test
---- response_body_like: 500 Internal Server Error
---- error_code: 500
+--- stream_response
 --- error_log
 bad "zone" argument
 
 
 
 === TEST 89: incr bad zone table
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs.incr({1}, "foo", 32)
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs.incr({1}, "foo", 32)
     }
---- request
-GET /test
---- response_body_like: 500 Internal Server Error
---- error_code: 500
+--- stream_response
 --- error_log
 
 
 
 === TEST 90: check the type of the shdict object
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            ngx.say("type: ", type(t.dogs))
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        ngx.say("type: ", type(t.dogs))
     }
---- request
-GET /test
---- response_body
+--- stream_response
 type: table
 --- no_error_log
 [error]
@@ -2400,29 +1923,25 @@ type: table
 
 
 === TEST 91: dogs, cat mixing
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("foo", 32)
-            dogs:set("bah", 10502)
-            local val = dogs:get("foo")
-            ngx.say(val, " ", type(val))
-            val = dogs:get("bah")
-            ngx.say(val, " ", type(val))
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs:set("foo", 32)
+        dogs:set("bah", 10502)
+        local val = dogs:get("foo")
+        ngx.say(val, " ", type(val))
+        val = dogs:get("bah")
+        ngx.say(val, " ", type(val))
 
-            local cats = t.cats
-            val = cats:get("foo")
-            ngx.say(val or "nil")
-            val = cats:get("bah")
-            ngx.say(val or "nil")
-        ';
+        local cats = t.cats
+        val = cats:get("foo")
+        ngx.say(val or "nil")
+        val = cats:get("bah")
+        ngx.say(val or "nil")
     }
---- request
-GET /test
---- response_body
+--- stream_response
 32 number
 10502 number
 nil
@@ -2433,18 +1952,13 @@ nil
 
 
 === TEST 92: invalid expire time
---- http_config eval: $::HttpConfig
---- config
-    location = /test {
-        content_by_lua '
-            local t = require("resty.shdict")
-            local dogs = t.dogs
-            dogs:set("foo", 32, -1)
-        ';
+--- stream_config eval: $::StreamConfig
+--- stream_server_config
+    content_by_lua_block {
+        local t = require("resty.shdict")
+        local dogs = t.dogs
+        dogs:set("foo", 32, -1)
     }
---- request
-GET /test
---- response_body_like: 500 Internal Server Error
---- error_code: 500
+--- stream_response
 --- error_log
 bad "exptime" argument

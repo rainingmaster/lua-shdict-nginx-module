@@ -34,18 +34,30 @@ end
 
 
 ffi.cdef[[
-    int ngx_lua_ffi_shdict_get_zones_num();
-
-    void ngx_lua_ffi_shdict_get_zones(ngx_str_t *names,
-        void **zones);
-
     int ngx_lua_ffi_shdict_find_zone(void **zones,
         const unsigned char *name_data, size_t name_len);
 
-    int ngx_lua_ffi_shdict_get_helper(void *zone, int op,
+    int ngx_lua_ffi_shdict_expire(void *zone,
+        int force, const unsigned char *key, size_t key_len,
+        int exptime, int *is_stale, char **errmsg);
+
+    int ngx_lua_ffi_shdict_ttl(void *zone,
+        const unsigned char *key, size_t key_len, int *ttl,
+        char **errmsg);
+
+    int ngx_lua_ffi_shdict_get_keys(void *zone, int attempts,
+        ngx_str_t **keys_buf, int *keys_num, char **errmsg);
+
+    int ngx_lua_ffi_shdict_flush(void *zone, char **errmsg);
+
+    int ngx_lua_ffi_shdict_flush_expired(void *zone, int attempts,
+        int *freed, char **errmsg);
+
+
+    int ngx_lua_ffi_shdict_fetch_helper(void *zone, int get_stale,
         const unsigned char *key, size_t key_len, int *value_type,
         unsigned char **str_value_buf, size_t *str_value_len,
-        double *num_value, int *user_flags, int *ttl,
+        double *num_value, int *user_flags,
         int *is_stale, char **errmsg);
 
     int ngx_lua_ffi_shdict_store_helper(void *zone, int op,
@@ -53,30 +65,23 @@ ffi.cdef[[
         const unsigned char *str_value_buf, size_t str_value_len,
         double num_value, int exptime, int user_flags, char **errmsg,
         int *forcible);
-        
+
+    int ngx_lua_ffi_shdict_incr_helper(void *zone, const unsigned char *key,
+        size_t key_len, double *value, char **err, int has_init, double init,
+        int exptime, int *forcible);
+
+
     int ngx_lua_ffi_shdict_pop_helper(void *zone, const unsigned char *key,
         size_t key_len, int *value_type, unsigned char **str_value_buf,
         size_t *str_value_len, double *num_value, int flags, char **errmsg);
-        
+
     int ngx_lua_ffi_shdict_push_helper(void *zone, const unsigned char *key,
         size_t key_len, int value_type, const unsigned char *str_value_buf,
         size_t str_value_len, double num_value, int *value_len,
         int flags, char **errmsg);
-        
+
     int ngx_lua_ffi_shdict_llen(void *zone, const unsigned char *key,
         size_t key_len, int *value_len, char **errmsg);
-        
-    int ngx_lua_ffi_shdict_flush(void *zone, char **errmsg);
-        
-    int ngx_lua_ffi_shdict_flush_expired(void *zone, int attempts,
-        int *freed, char **errmsg);
-
-    int ngx_lua_ffi_shdict_incr_helper(void *zone, const unsigned char *key,
-        size_t key_len, double *value, char **err, int has_init, double init,
-        int *forcible);
-        
-    int ngx_lua_ffi_shdict_get_keys(void *zone, int attempts,
-        ngx_str_t **keys_buf, int *keys_num, char **errmsg);
 ]]
 
 
@@ -128,7 +133,7 @@ local function check_key(key)
     if key_len > 65535 then
         return nil, "key too long"
     end
-    
+
     return key, key_len
 end
 
@@ -169,7 +174,7 @@ local function shdict_push(zone, flag, key, value)
     else
         return nil, "bad value type"
     end
-    
+
     local value_len = int_tmp[0]
 
     local rc = C.ngx_lua_ffi_shdict_push_helper(meta_zone, key, key_len,
@@ -187,12 +192,12 @@ end
 
 
 local function shdict_lpush(zone, key, value)
-    return shdict_push(zone, 0x0001, key, value)
+    return shdict_push(zone, 1, key, value)
 end
 
 
 local function shdict_rpush(zone, key, value)
-    return shdict_push(zone, 0x0002, key, value)
+    return shdict_push(zone, 0, key, value)
 end
 
 
@@ -206,11 +211,11 @@ local function shdict_pop(zone, flag, key)
 
     str_value_buf[0] = str_buf
     str_value_len[0] = str_buf_size
-    
+
     local value_type = int_tmp[0]
 
-    local rc = C.ngx_lua_ffi_shdict_pop_helper(meta_zone, key, key_len, value_type, 
-                                                  str_value_buf, str_value_len, num_value, 
+    local rc = C.ngx_lua_ffi_shdict_pop_helper(meta_zone, key, key_len, value_type,
+                                                  str_value_buf, str_value_len, num_value,
                                                   flag, errmsg)
 
     if rc ~= NGX_OK then
@@ -242,12 +247,12 @@ end
 
 
 local function shdict_lpop(zone, key)
-    return shdict_pop(zone, 0x0001, key)
+    return shdict_pop(zone, 1, key)
 end
 
 
 local function shdict_rpop(zone, key)
-    return shdict_pop(zone, 0x0002, key)
+    return shdict_pop(zone, 0, key)
 end
 
 
@@ -258,7 +263,7 @@ local function shdict_llen(zone, key)
     if key == nil then
         return key, key_len
     end
-    
+
     local value_len = int_tmp[0]
 
     local rc = C.ngx_lua_ffi_shdict_llen(meta_zone, key, key_len, value_len, errmsg)
@@ -315,7 +320,7 @@ local function shdict_store(zone, op, key, value, exptime, flags)
     else
         return false, "bad value type"
     end
-    
+
     local forcible = int_tmp[0]
 
     local rc = C.ngx_lua_ffi_shdict_store_helper(meta_zone, op, key, key_len,
@@ -363,7 +368,7 @@ local function shdict_delete(zone, key)
 end
 
 
-local function shdict_expire(zone, key, exptime)
+local function shdict_expire(zone, key, exptime, force)
     local meta_zone = check_zone(zone)
 
     exptime = tonumber(exptime)
@@ -376,21 +381,51 @@ local function shdict_expire(zone, key, exptime)
         return key, key_len
     end
 
-    local str_value_buf
+    if force then
+        force = 1
+    else
+        force = 0
+    end
 
-    local rc = C.ngx_lua_ffi_shdict_store_helper(meta_zone, 0x0008, key, key_len,
-                                                    1, str_value_buf, 0, 1, -- fake boolean
-                                                    exptime * 1000, 0, errmsg, int_tmp[0])
+    local is_stale = int_tmp[0]
+
+    local rc = C.ngx_lua_ffi_shdict_expire(meta_zone, force, key, key_len,
+                                           exptime * 1000, is_stale, errmsg)
 
     if rc ~= NGX_OK then
         return 0, ffi_str(errmsg[0])
     end
-    
-    return 1
+
+    if force == 0 then
+        return 1
+    else
+        return 1, is_stale[0] == 1
+    end
 end
 
 
-local function shdict_fetch(zone, key, op)
+local function shdict_ttl(zone, key)
+    local meta_zone = check_zone(zone)
+
+    local key, key_len = check_key(key)
+    if key == nil then
+        return key, key_len
+    end
+
+    local ttl = int_tmp[0]
+
+    local rc = C.ngx_lua_ffi_shdict_ttl(meta_zone, key,
+                                        key_len, ttl, errmsg)
+
+    if rc ~= NGX_OK then
+        return nil, ffi_str(errmsg[0])
+    end
+
+    return tonumber(ttl[0])
+end
+
+
+local function shdict_fetch(zone, key, get_stale)
     local meta_zone = check_zone(zone)
 
     local key, key_len = check_key(key)
@@ -400,18 +435,15 @@ local function shdict_fetch(zone, key, op)
 
     str_value_buf[0] = str_buf
     str_value_len[0] = str_buf_size
-    
-    op = op or 0
-    
-    local value_type = int_tmp[0]
-    local ttl        = int_tmp[1]
-    local user_flags = int_tmp[2]
-    local is_stale   = int_tmp[3]
 
-    local rc = C.ngx_lua_ffi_shdict_get_helper(meta_zone, op, key,
-                                                  key_len, value_type, str_value_buf,
-                                                  str_value_len, num_value, user_flags,
-                                                  ttl, is_stale, errmsg)
+    local value_type = int_tmp[0]
+    local user_flags = int_tmp[1]
+    local is_stale   = int_tmp[2]
+
+    local rc = C.ngx_lua_ffi_shdict_fetch_helper(meta_zone, get_stale, key,
+                                                 key_len, value_type, str_value_buf,
+                                                 str_value_len, num_value, user_flags,
+                                                 is_stale, errmsg)
     if rc ~= NGX_OK then
         return nil, ffi_str(errmsg[0])
     end
@@ -442,18 +474,16 @@ local function shdict_fetch(zone, key, op)
         return error("unknown value type: " .. typ)
     end
 
-    if op == 0 then
-        if flags ~= 0 then
-            return val, flags
+    if get_stale == 0 then
+        if flags == 0 then
+            return val
         end
-
-        return val
+        return val, flags
     else
-        if flags ~= 0 then
-            return val, flags, is_stale[0] == 1
+        if flags == 0 then
+            return val, nil, is_stale[0] == 1
         end
-
-        return val, nil, is_stale[0] == 1
+        return val, flags, is_stale[0] == 1
     end
 end
 
@@ -464,29 +494,7 @@ end
 
 
 local function shdict_get_stale(zone, key)
-    return shdict_fetch(zone, key, 0x0001)
-end
-
-
-local function shdict_ttl(zone, key)
-    local meta_zone = check_zone(zone)
-
-    local key, key_len = check_key(key)
-    if key == nil then
-        return key, key_len
-    end
-    
-    local ttl = int_tmp[0]
-
-    local rc = C.ngx_lua_ffi_shdict_get_helper(meta_zone, 0x0002, key,
-                                                  key_len, nil, nil, nil,
-                                                  nil, nil, ttl, nil, errmsg)
-    
-    if rc ~= NGX_OK then
-        return nil, ffi_str(errmsg[0])
-    end
-    
-    return tonumber(ttl[0])
+    return shdict_fetch(zone, key, 1)
 end
 
 
@@ -521,7 +529,7 @@ local function shdict_flush_expired(zone, attempts)
 end
 
 
-local function shdict_incr(zone, key, value, init)
+local function shdict_incr(zone, key, value, init, exptime)
     local meta_zone = check_zone(zone)
 
     local key, key_len = check_key(key)
@@ -552,12 +560,17 @@ local function shdict_incr(zone, key, value, init)
         has_init = 0
         init = 0
     end
-    
+
+    exptime = tonumber(exptime)
+    if not exptime then
+        exptime = 0
+    end
+
     local forcible = int_tmp[0]
 
     local rc = C.ngx_lua_ffi_shdict_incr_helper(meta_zone, key, key_len, num_value,
-                                              errmsg, has_init, init,
-                                              forcible)
+                                                errmsg, has_init, init, exptime * 1000,
+                                                forcible)
     if rc ~= NGX_OK then  -- ~= NGX_OK
         return nil, ffi_str(errmsg[0])
     end

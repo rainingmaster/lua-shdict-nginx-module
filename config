@@ -1,17 +1,14 @@
+CORE_MODULES="$CORE_MODULES ngx_lua_shdict_module"
+HTTP_MODULES="$HTTP_MODULES ngx_lua_shdict_http_module"
+STREAM_MODULES="$STREAM_MODULES ngx_lua_shdict_stream_module"
 
-ngx_addon_name="ngx_http_lua_shdict_module ngx_stream_lua_shdict_module"
-
-NGX_LUA_SHDICT_SRCS="$ngx_addon_dir/src/ngx_lua_shdict_util.c \
-                     $ngx_addon_dir/src/ngx_http_lua_shdict_module.c \
-                     $ngx_addon_dir/src/ngx_stream_lua_shdict_module.c \
-                     "
-
-NGX_LUA_SHDICT_DEPS="$ngx_addon_dir/src/ngx_lua_shdict_common.h"
-
-
-HTTP_MODULES="$HTTP_MODULES $ngx_addon_name"
-NGX_ADDON_SRCS="$NGX_ADDON_SRCS $NGX_LUA_SHDICT_SRCS"
-NGX_ADDON_DEPS="$NGX_ADDON_DEPS $NGX_LUA_SHDICT_DEPS"
-
-CORE_INCS="$CORE_INCS $ngx_module_incs"
-CORE_LIBS="$CORE_LIBS $ngx_module_libs"
+NGX_ADDON_SRCS="$NGX_ADDON_SRCS \
+                $ngx_addon_dir/src/ngx_lua_shdict_module.c \
+                $ngx_addon_dir/src/ngx_lua_shdict_http_module.c \
+                $ngx_addon_dir/src/ngx_lua_shdict_stream_module.c \
+                $ngx_addon_dir/src/ngx_lua_shdict_util.c \
+                $ngx_addon_dir/src/ngx_lua_shdict_key.c \
+                $ngx_addon_dir/src/ngx_lua_shdict_string.c \
+                $ngx_addon_dir/src/ngx_lua_shdict_list.c"
+NGX_ADDON_DEPS="$NGX_ADDON_DEPS \
+                $ngx_addon_dir/src/ngx_lua_shdict_common.h"
