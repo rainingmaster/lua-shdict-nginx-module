@@ -12,6 +12,8 @@ local type         = type
 local error        = error
 local setmetatable = setmetatable
 local NGX_OK       = 0
+local ngx_log      = ngx.log
+local ERR          = ngx.ERR
 
 
 local ZONE_INDEX   = 1
@@ -34,8 +36,9 @@ end
 
 
 ffi.cdef[[
-    int ngx_lua_ffi_shdict_find_zone(void **zones,
-        const unsigned char *name_data, size_t name_len);
+    int ngx_lua_ffi_shdict_find_zone(void **zone,
+        const unsigned char *name_data, size_t name_len,
+        char **errmsg);
 
     int ngx_lua_ffi_shdict_expire(void *zone,
         int force, const unsigned char *key, size_t key_len,
@@ -140,9 +143,9 @@ end
 
 local function shdict_find(name)
     local zone_buf = ffi_new("void *[1]")
-    local rc = C.ngx_lua_ffi_shdict_find_zone(zone_buf, name, #name)
+    local rc = C.ngx_lua_ffi_shdict_find_zone(zone_buf, name, #name, errmsg)
     if rc ~= NGX_OK then
-        return nil
+        return nil, ffi_str(errmsg[0])
     end
 
     return zone_buf[0]
@@ -638,9 +641,10 @@ func.ttl                = shdict_ttl
 local function set_index()
     local mt = {
         __index = function(tb, name)
-            local zone = shdict_find(name)
+            local zone, err = shdict_find(name)
             if not zone then
-                return error("can not find zone named \"" .. name .. "\"")
+                ngx_log(ERR, "find zone named \"" .. name .. "\" err: " .. err)
+                return nil
             end
 
             tb[name] = {

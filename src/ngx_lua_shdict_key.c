@@ -8,14 +8,14 @@
 
 
 int
-ngx_lua_ffi_shdict_find_zone(ngx_shm_zone_t **zones, u_char *name_data,
-    size_t name_len)
+ngx_lua_ffi_shdict_find_zone(ngx_shm_zone_t **zone, u_char *name_data,
+    size_t name_len, char **errmsg)
 {
+    ngx_uint_t                         i;
     ngx_str_t                         *name;
     ngx_lua_shdict_conf_t             *lscf;
-
-    ngx_uint_t        i;
-    ngx_shm_zone_t  **shm_zone;
+    ngx_lua_shdict_ctx_t              *ctx;
+    ngx_shm_zone_t                   **shm_zone;
 
     lscf = (ngx_lua_shdict_conf_t *) ngx_get_conf(ngx_cycle->conf_ctx,
                                                   ngx_lua_shdict_module);
@@ -31,11 +31,19 @@ ngx_lua_ffi_shdict_find_zone(ngx_shm_zone_t **zones, u_char *name_data,
         if (name->len == name_len
             && ngx_strncmp(name->data, name_data, name_len) == 0)
         {
-            *zones = shm_zone[i];
-            return NGX_OK;
+            /* check zone init or not */
+            ctx = shm_zone[i]->data;
+            if (ctx->sh) {
+                *zone = shm_zone[i];
+                return NGX_OK;
+            }
+
+            *errmsg = "not init";
+            return NGX_ERROR;
         }
     }
 
+    *errmsg = "not found";
     return NGX_ERROR;
 }
 
