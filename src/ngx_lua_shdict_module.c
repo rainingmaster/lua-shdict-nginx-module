@@ -160,6 +160,8 @@ static void *ngx_lua_shdict_create_conf(ngx_cycle_t *cycle)
 
 static char *ngx_lua_shdict_init_conf(ngx_cycle_t *cycle, void *conf)
 {
+#if defined(NGX_HAVE_HTTP_LUA_MODULE) && \
+    defined(NGX_HAVE_STREAM_LUA_MODULE)
     ngx_str_t                     http_name = ngx_string("~http_post");
     ngx_str_t                     stream_name = ngx_string("~stream_post");
     ssize_t                       size = 8192;
@@ -186,6 +188,7 @@ static char *ngx_lua_shdict_init_conf(ngx_cycle_t *cycle, void *conf)
                                                 &ngx_lua_shdict_module);
         zone->init = ngx_lua_shdict_fake_init;
     }
+#endif
 
     return NGX_OK;
 }

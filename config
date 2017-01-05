@@ -1,14 +1,25 @@
 CORE_MODULES="$CORE_MODULES ngx_lua_shdict_module"
-HTTP_MODULES="$HTTP_MODULES ngx_lua_shdict_http_module"
-STREAM_MODULES="$STREAM_MODULES ngx_lua_shdict_stream_module"
 
 NGX_ADDON_SRCS="$NGX_ADDON_SRCS \
                 $ngx_addon_dir/src/ngx_lua_shdict_module.c \
-                $ngx_addon_dir/src/ngx_lua_shdict_http_module.c \
-                $ngx_addon_dir/src/ngx_lua_shdict_stream_module.c \
                 $ngx_addon_dir/src/ngx_lua_shdict_util.c \
                 $ngx_addon_dir/src/ngx_lua_shdict_key.c \
                 $ngx_addon_dir/src/ngx_lua_shdict_string.c \
                 $ngx_addon_dir/src/ngx_lua_shdict_list.c"
 NGX_ADDON_DEPS="$NGX_ADDON_DEPS \
                 $ngx_addon_dir/src/ngx_lua_shdict_common.h"
+
+if [ $HTTP = YES ]; then
+    HTTP_MODULES="$HTTP_MODULES ngx_lua_shdict_http_module"
+    NGX_ADDON_SRCS="$NGX_ADDON_SRCS \
+                    $ngx_addon_dir/src/ngx_lua_shdict_http_module.c"
+fi
+
+if [ $STREAM != NO ]; then
+    STREAM_MODULES="$STREAM_MODULES ngx_lua_shdict_stream_module"
+    NGX_ADDON_SRCS="$NGX_ADDON_SRCS \
+                    $ngx_addon_dir/src/ngx_lua_shdict_stream_module.c"
+fi
+
+echo $HTTP
+echo $STREAM
