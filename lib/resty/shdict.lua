@@ -12,8 +12,6 @@ local type         = type
 local error        = error
 local setmetatable = setmetatable
 local NGX_OK       = 0
-local ngx_log      = ngx.log
-local ERR          = ngx.ERR
 
 
 local ZONE_INDEX   = 1
@@ -181,9 +179,9 @@ local function shdict_push(zone, flag, key, value)
     local value_len = int_tmp[0]
 
     local rc = C.ngx_lua_ffi_shdict_push_helper(meta_zone, key, key_len,
-                                                    valtyp, str_value_buf,
-                                                    str_value_len, num_value,
-                                                    value_len, flag, errmsg)
+                                                valtyp, str_value_buf,
+                                                str_value_len, num_value,
+                                                value_len, flag, errmsg)
 
     if rc == NGX_OK then  -- NGX_OK
         return tonumber(value_len[0])
@@ -217,9 +215,10 @@ local function shdict_pop(zone, flag, key)
 
     local value_type = int_tmp[0]
 
-    local rc = C.ngx_lua_ffi_shdict_pop_helper(meta_zone, key, key_len, value_type,
-                                                  str_value_buf, str_value_len, num_value,
-                                                  flag, errmsg)
+    local rc = C.ngx_lua_ffi_shdict_pop_helper(meta_zone, key, key_len,
+                                               value_type, str_value_buf,
+                                               str_value_len, num_value,
+                                               flag, errmsg)
 
     if rc ~= NGX_OK then
         return nil, ffi_str(errmsg[0])
@@ -269,7 +268,8 @@ local function shdict_llen(zone, key)
 
     local value_len = int_tmp[0]
 
-    local rc = C.ngx_lua_ffi_shdict_llen(meta_zone, key, key_len, value_len, errmsg)
+    local rc = C.ngx_lua_ffi_shdict_llen(meta_zone, key, key_len,
+                                         value_len, errmsg)
 
     if rc ~= NGX_OK then
         return nil, ffi_str(errmsg[0])
@@ -285,6 +285,7 @@ local function shdict_store(zone, op, key, value, exptime, flags)
     exptime = tonumber(exptime)
     if not exptime then
         exptime = 0
+
     elseif exptime < 0 then
         return error("bad \"exptime\" argument")
     end
@@ -327,10 +328,10 @@ local function shdict_store(zone, op, key, value, exptime, flags)
     local forcible = int_tmp[0]
 
     local rc = C.ngx_lua_ffi_shdict_store_helper(meta_zone, op, key, key_len,
-                                                    valtyp, str_value_buf,
-                                                    str_value_len, num_value,
-                                                    exptime * 1000, flags, errmsg,
-                                                    forcible)
+                                                 valtyp, str_value_buf,
+                                                 str_value_len, num_value,
+                                                 exptime * 1000, flags, errmsg,
+                                                 forcible)
 
     if rc == NGX_OK then  -- NGX_OK
         return true, nil, forcible[0] == 1
@@ -444,8 +445,9 @@ local function shdict_fetch(zone, key, get_stale)
     local is_stale   = int_tmp[2]
 
     local rc = C.ngx_lua_ffi_shdict_fetch_helper(meta_zone, get_stale, key,
-                                                 key_len, value_type, str_value_buf,
-                                                 str_value_len, num_value, user_flags,
+                                                 key_len, value_type,
+                                                 str_value_buf, str_value_len,
+                                                 num_value, user_flags,
                                                  is_stale, errmsg)
     if rc ~= NGX_OK then
         return nil, ffi_str(errmsg[0])
@@ -523,7 +525,9 @@ local function shdict_flush_expired(zone, attempts)
 
     local freed = int_tmp[0]
 
-    local rc = C.ngx_lua_ffi_shdict_flush_expired(meta_zone, attempts, freed, errmsg)
+    local rc = C.ngx_lua_ffi_shdict_flush_expired(meta_zone, attempts,
+                                                  freed, errmsg)
+
     if rc ~= 0 then
         return error("failed get flush expire")
     end
@@ -571,9 +575,11 @@ local function shdict_incr(zone, key, value, init, exptime)
 
     local forcible = int_tmp[0]
 
-    local rc = C.ngx_lua_ffi_shdict_incr_helper(meta_zone, key, key_len, num_value,
-                                                errmsg, has_init, init, exptime * 1000,
+    local rc = C.ngx_lua_ffi_shdict_incr_helper(meta_zone, key, key_len,
+                                                num_value, errmsg, has_init,
+                                                init, exptime * 1000,
                                                 forcible)
+
     if rc ~= NGX_OK then  -- ~= NGX_OK
         return nil, ffi_str(errmsg[0])
     end
@@ -598,7 +604,8 @@ local function shdict_get_keys(zone, attempts)
     end
 
     local rc = C.ngx_lua_ffi_shdict_get_keys(meta_zone, attempts, keys_buf,
-        keys_num, errmsg)
+                                             keys_num, errmsg)
+
     if rc ~= 0 then
         return nil, ffi_str(errmsg)
     end
@@ -638,13 +645,12 @@ func.expire             = shdict_expire
 func.ttl                = shdict_ttl
 
 
-local function set_index()
+do
     local mt = {
         __index = function(tb, name)
             local zone, err = shdict_find(name)
             if not zone then
-                ngx_log(ERR, "find zone named \"" .. name .. "\" err: " .. err)
-                return nil
+                return nil, err
             end
 
             tb[name] = {
@@ -656,9 +662,6 @@ local function set_index()
     }
     setmetatable(_M, mt)
 end
-
-
-set_index()
 
 
 return _M
