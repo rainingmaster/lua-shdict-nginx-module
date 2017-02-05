@@ -8,14 +8,8 @@ Table of Contents
 =================
 
 * [Name](#name)
-* [Notice](#notice)
 * [Installation](#installation)
 * [Directives](#directives)
-
-
-Notice
-============
-Please notice that only applies to their own block in *init_by_lua* phase, because some shdict maybe not init yet.
 
 
 Installation
