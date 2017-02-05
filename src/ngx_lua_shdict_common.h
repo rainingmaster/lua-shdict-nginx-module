@@ -24,15 +24,6 @@
 #include <lauxlib.h>
 
 
-#ifdef NGX_HAVE_HTTP_LUA_MODULE
-#   include "ngx_http_lua_api.h"
-#endif
-
-#ifdef NGX_HAVE_STREAM_LUA_MODULE
-#   include "ngx_stream_lua_api.h"
-#endif
-
-
 typedef struct {
     u_char                       color;
     uint8_t                      value_type;
