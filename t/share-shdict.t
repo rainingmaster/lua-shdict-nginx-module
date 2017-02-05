@@ -458,24 +458,24 @@ get success
 [error]
 
 
-=== TEST 8: oper in init_by_lua respective
+=== TEST 8: oper another's shdict in init_by_lua
 --- http_config
     lua_package_path "$TEST_NGINX_LUA_PACK_PATH";
     lua_shared_mem http_dict 900k;
     init_by_lua_block {
         local t = require("resty.shdict")
-        local http_dict = t.http_dict
+        local stream_dict = t.stream_dict
 
-        http_dict:set("hello", "world")
+        stream_dict:set("hello", "world")
     }
     server {
         listen 1986;
         location = / {
             content_by_lua_block {
                 local t = require("resty.shdict")
-                local http_dict = t.http_dict
+                local stream_dict = t.stream_dict
 
-                local ret, err = http_dict:get("hello")
+                local ret, err = stream_dict:get("hello")
                 if ret then
                     ngx.say("stream get: ", ret)
                 else
@@ -489,16 +489,16 @@ get success
     lua_shared_mem stream_dict 900k;
     init_by_lua_block {
         local t = require("resty.shdict")
-        local stream_dict = t.stream_dict
+        local http_dict = t.http_dict
 
-        stream_dict:set("foo", "bar")
+        http_dict:set("foo", "bar")
     }
 --- stream_server_config
     content_by_lua_block {
         local t = require("resty.shdict")
-        local stream_dict = t.stream_dict
+        local http_dict = t.http_dict
 
-        local ret, err = stream_dict:get("foo")
+        local ret, err = http_dict:get("foo")
         if ret then
             ngx.say("http get: ", ret)
         else

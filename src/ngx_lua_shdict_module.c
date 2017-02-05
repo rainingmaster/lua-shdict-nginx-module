@@ -210,36 +210,7 @@ ngx_lua_shdict(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ctx->name = name;
     ctx->log = &cf->cycle->new_log;
 
-    switch(cf->module_type) {
-
-#ifdef NGX_HAVE_HTTP_LUA_MODULE
-    case NGX_HTTP_MODULE:
-         zone = ngx_http_lua_shared_memory_add(cf, &name, (size_t) size,
-                                               &ngx_lua_shdict_module);
-         break;
-#endif
-
-#ifdef NGX_HAVE_STREAM_LUA_MODULE
-    case NGX_STREAM_MODULE:
-         zone = ngx_stream_lua_shared_memory_add(cf, &name, (size_t) size,
-                                                 &ngx_lua_shdict_module);
-         break;
-#endif
-
-    default:
-#if !defined(NGX_HAVE_HTTP_LUA_MODULE) && \
-    !defined(NGX_HAVE_STREAM_LUA_MODULE)
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "\"ngx_http_lua_module\" or ",
-                           "\"ngx_stream_lua_module\" is required");
-        return NGX_CONF_ERROR;
-#else
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "\"%s\" directive is not allowed here",
-                           cmd->name.data);
-        return NGX_CONF_ERROR;
-#endif
-    }
+    zone = ngx_shared_memory_add(cf, &name, (size_t) size, &ngx_lua_shdict_module);
 
     if (zone == NULL) {
         return NGX_CONF_ERROR;
