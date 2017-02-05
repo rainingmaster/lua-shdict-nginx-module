@@ -9,6 +9,7 @@ Table of Contents
 
 * [Name](#name)
 * [Notice](#notice)
+* [Installation](#installation)
 * [Directives](#directives)
 * [Nginx shared dict API for Lua](#nginx-shared-dict-api-for-lua)
 * [Community](#community)
@@ -23,6 +24,10 @@ Table of Contents
 Notice
 ============
 Please notice that only applies to their own block in *init_by_lua* phase, because some shdict maybe not init yet.
+
+
+Installation
+============
 
 
 Directives
