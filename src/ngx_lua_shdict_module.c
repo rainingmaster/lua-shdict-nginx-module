@@ -12,8 +12,9 @@ static char *ngx_lua_shdict(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
 static ngx_command_t ngx_lua_shdict_cmds[] = {
 
+    /* NGX_HTTP_MAIN_CONF equal NGX_STREAM_MAIN_CONF */
     { ngx_string("lua_shared_mem"),
-      NGX_HTTP_MAIN_CONF|NGX_STREAM_MAIN_CONF|NGX_CONF_TAKE2|NGX_MAIN_CONF,
+      NGX_HTTP_MAIN_CONF|NGX_CONF_TAKE2|NGX_MAIN_CONF,
       ngx_lua_shdict,
       0,
       0,
