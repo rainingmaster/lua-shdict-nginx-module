@@ -49,102 +49,6 @@ ngx_lua_ffi_shdict_find_zone(ngx_shm_zone_t **zone, u_char *name_data,
 
 
 int
-ngx_lua_ffi_shdict_expire(ngx_shm_zone_t *zone, int force, u_char *key,
-    size_t key_len, int exptime, int *is_stale, char **errmsg)
-{
-    uint32_t                     hash;
-    ngx_int_t                    rc;
-    ngx_time_t                  *tp;
-    ngx_lua_shdict_ctx_t        *ctx;
-    ngx_lua_shdict_node_t       *sd;
-
-    ctx = zone->data;
-
-    hash = ngx_crc32_short(key, key_len);
-
-    ngx_shmtx_lock(&ctx->shpool->mutex);
-
-    if (!force) {
-        ngx_lua_shdict_expire(ctx, 1);
-    }
-
-    rc = ngx_lua_shdict_lookup(zone, hash, key, key_len, &sd);
-
-    if (rc == NGX_DECLINED || (rc == NGX_DONE && !force)) {
-        ngx_shmtx_unlock(&ctx->shpool->mutex);
-        *errmsg = "not found";
-        return NGX_DECLINED;
-    }
-
-    /* rc == NGX_OK || (rc == NGX_DONE && force) */
-
-    if (exptime > 0) {
-        tp = ngx_timeofday();
-        sd->expires = (uint64_t) tp->sec * 1000 + tp->msec
-                      + (uint64_t) exptime;
-
-    } else {
-        sd->expires = 0;
-    }
-
-    ngx_shmtx_unlock(&ctx->shpool->mutex);
-
-    if (force) {
-        *is_stale = (rc == NGX_DONE);
-        return NGX_OK;
-    }
-
-    return NGX_OK;
-}
-
-
-int
-ngx_lua_ffi_shdict_ttl(ngx_shm_zone_t *zone, u_char *key,
-    size_t key_len, int *ttl, char **errmsg)
-{
-    uint32_t                     hash;
-    ngx_int_t                    rc;
-    ngx_time_t                  *tp;
-    ngx_lua_shdict_ctx_t        *ctx;
-    ngx_lua_shdict_node_t       *sd;
-    uint64_t                     now;
-
-    ctx = zone->data;
-
-    hash = ngx_crc32_short(key, key_len);
-
-    ngx_shmtx_lock(&ctx->shpool->mutex);
-
-    ngx_lua_shdict_expire(ctx, 1);
-
-    rc = ngx_lua_shdict_lookup(zone, hash, key, key_len, &sd);
-
-    if (rc == NGX_DECLINED || rc == NGX_DONE) {
-        *ttl = -2;
-
-    } else { /* rc == NGX_OK */
-
-        if (sd->expires == 0) {
-            *ttl = -1;
-
-        } else {
-            tp = ngx_timeofday();
-            now = (uint64_t) tp->sec * 1000 + tp->msec;
-            *ttl = (int)((sd->expires - now) / 1000);
-            if (*ttl < 0) {
-                *ttl = -2;
-            }
-        }
-    }
-
-    ngx_shmtx_unlock(&ctx->shpool->mutex);
-
-    return NGX_OK;
-}
-
-
-
-int
 ngx_lua_ffi_shdict_get_keys(ngx_shm_zone_t *zone, int attempts,
     ngx_str_t **keys_buf, int *keys_num, char **errmsg)
 {
@@ -231,7 +135,7 @@ ngx_lua_ffi_shdict_get_keys(ngx_shm_zone_t *zone, int attempts,
 
 
 int
-ngx_lua_ffi_shdict_flush(ngx_shm_zone_t *zone, char **errmsg)
+ngx_lua_ffi_shdict_flush_all(ngx_shm_zone_t *zone, char **errmsg)
 {
     ngx_queue_t                 *q;
     ngx_lua_shdict_node_t       *sd;
@@ -328,3 +232,168 @@ ngx_lua_ffi_shdict_flush_expired(ngx_shm_zone_t *zone, int attempts,
 
     return NGX_OK;
 }
+
+
+static ngx_int_t
+ngx_lua_shdict_peek(ngx_shm_zone_t *shm_zone, ngx_uint_t hash,
+    u_char *kdata, size_t klen, ngx_lua_shdict_node_t **sdp)
+{
+    ngx_int_t                    rc;
+    ngx_rbtree_node_t           *node, *sentinel;
+    ngx_lua_shdict_ctx_t        *ctx;
+    ngx_lua_shdict_node_t       *sd;
+
+    ctx = shm_zone->data;
+
+    node = ctx->sh->rbtree.root;
+    sentinel = ctx->sh->rbtree.sentinel;
+
+    while (node != sentinel) {
+
+        if (hash < node->key) {
+            node = node->left;
+            continue;
+        }
+
+        if (hash > node->key) {
+            node = node->right;
+            continue;
+        }
+
+        /* hash == node->key */
+
+        sd = (ngx_lua_shdict_node_t *) &node->color;
+
+        rc = ngx_memn2cmp(kdata, sd->data, klen, (size_t) sd->key_len);
+
+        if (rc == 0) {
+            *sdp = sd;
+
+            return NGX_OK;
+        }
+
+        node = (rc < 0) ? node->left : node->right;
+    }
+
+    *sdp = NULL;
+
+    return NGX_DECLINED;
+}
+
+
+long
+ngx_lua_ffi_shdict_get_ttl(ngx_shm_zone_t *zone, u_char *key,
+    size_t key_len)
+{
+    uint32_t                     hash;
+    uint64_t                     now;
+    uint64_t                     expires;
+    ngx_int_t                    rc;
+    ngx_time_t                  *tp;
+    ngx_lua_shdict_ctx_t        *ctx;
+    ngx_lua_shdict_node_t       *sd;
+
+    if (zone == NULL) {
+        return NGX_ERROR;
+    }
+
+    ctx = zone->data;
+    hash = ngx_crc32_short(key, key_len);
+
+    ngx_shmtx_lock(&ctx->shpool->mutex);
+
+    rc = ngx_lua_shdict_peek(zone, hash, key, key_len, &sd);
+
+    if (rc == NGX_DECLINED) {
+        ngx_shmtx_unlock(&ctx->shpool->mutex);
+
+        return NGX_DECLINED;
+    }
+
+    /* rc == NGX_OK */
+
+    expires = sd->expires;
+
+    ngx_shmtx_unlock(&ctx->shpool->mutex);
+
+    if (expires == 0) {
+        return 0;
+    }
+
+    tp = ngx_timeofday();
+    now = (uint64_t) tp->sec * 1000 + tp->msec;
+
+    return expires - now;
+}
+
+
+int
+ngx_lua_ffi_shdict_set_expire(ngx_shm_zone_t *zone, u_char *key,
+    size_t key_len, long exptime)
+{
+    uint32_t                     hash;
+    ngx_int_t                    rc;
+    ngx_time_t                  *tp = NULL;
+    ngx_lua_shdict_ctx_t        *ctx;
+    ngx_lua_shdict_node_t       *sd;
+
+    if (zone == NULL) {
+        return NGX_ERROR;
+    }
+
+    if (exptime > 0) {
+        tp = ngx_timeofday();
+    }
+
+    ctx = zone->data;
+    hash = ngx_crc32_short(key, key_len);
+
+    ngx_shmtx_lock(&ctx->shpool->mutex);
+
+    rc = ngx_lua_shdict_peek(zone, hash, key, key_len, &sd);
+
+    if (rc == NGX_DECLINED) {
+        ngx_shmtx_unlock(&ctx->shpool->mutex);
+
+        return NGX_DECLINED;
+    }
+
+    /* rc == NGX_OK */
+
+    if (exptime > 0) {
+        sd->expires = (uint64_t) tp->sec * 1000 + tp->msec
+                      + (uint64_t) exptime;
+
+    } else {
+        sd->expires = 0;
+    }
+
+    ngx_shmtx_unlock(&ctx->shpool->mutex);
+
+    return NGX_OK;
+}
+
+
+size_t
+ngx_lua_ffi_shdict_capacity(ngx_shm_zone_t *zone)
+{
+    return zone->shm.size;
+}
+
+
+#if nginx_version >= 1011007
+size_t
+ngx_lua_ffi_shdict_free_space(ngx_shm_zone_t *zone)
+{
+    size_t                       bytes;
+    ngx_lua_shdict_ctx_t        *ctx;
+
+    ctx = zone->data;
+
+    ngx_shmtx_lock(&ctx->shpool->mutex);
+    bytes = ctx->shpool->pfree * ngx_pagesize;
+    ngx_shmtx_unlock(&ctx->shpool->mutex);
+
+    return bytes;
+}
+#endif /* nginx_version >= 1011007 */

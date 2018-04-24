@@ -10,7 +10,7 @@
 int
 ngx_lua_ffi_shdict_store_helper(ngx_shm_zone_t *zone, int op, u_char *key,
     size_t key_len, int value_type, u_char *str_value_buf,
-    size_t str_value_len, double num_value, int exptime, int user_flags,
+    size_t str_value_len, double num_value, long exptime, int user_flags,
     char **errmsg, int *forcible)
 {
     int                          i, n;
@@ -379,7 +379,7 @@ ngx_lua_ffi_shdict_fetch_helper(ngx_shm_zone_t *zone, int get_stale,
 int
 ngx_lua_ffi_shdict_incr_helper(ngx_shm_zone_t *zone, u_char *key,
     size_t key_len, double *value, char **err, int has_init, double init,
-    int exptime, int *forcible)
+    long exptime, int *forcible)
 {
     int                          i, n;
     uint32_t                     hash;

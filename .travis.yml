@@ -35,16 +35,10 @@ env:
     - JOBS=3
     - NGX_BUILD_JOBS=$JOBS
   matrix:
-    - NGINX_VERSION=1.9.15
+    - NGINX_VERSION=1.13.6
       BUILD_SH=build.sh
       TEST_CASE=t
-    - NGINX_VERSION=1.11.2
-      BUILD_SH=build.sh
-      TEST_CASE=t
-    - NGINX_VERSION=1.9.15
-      BUILD_SH=build-only-http.sh
-      TEST_CASE=t/http-*
-    - NGINX_VERSION=1.11.2
+    - NGINX_VERSION=1.13.6
       BUILD_SH=build-only-http.sh
       TEST_CASE=t/http-*
 

@@ -38,18 +38,18 @@ ffi.cdef[[
         const unsigned char *name_data, size_t name_len,
         char **errmsg);
 
-    int ngx_lua_ffi_shdict_expire(void *zone,
-        int force, const unsigned char *key, size_t key_len,
-        int exptime, int *is_stale, char **errmsg);
+    long ngx_lua_ffi_shdict_get_ttl(void *zone,
+         const unsigned char *key, size_t key_len);
 
-    int ngx_lua_ffi_shdict_ttl(void *zone,
-        const unsigned char *key, size_t key_len, int *ttl,
-        char **errmsg);
+    int ngx_lua_ffi_shdict_set_expire(void *zone,
+        const unsigned char *key, size_t key_len, long exptime);
+
+    size_t ngx_http_lua_ffi_shdict_capacity(void *zone);
 
     int ngx_lua_ffi_shdict_get_keys(void *zone, int attempts,
         ngx_str_t **keys_buf, int *keys_num, char **errmsg);
 
-    int ngx_lua_ffi_shdict_flush(void *zone, char **errmsg);
+    int ngx_lua_ffi_shdict_flush_all(void *zone, char **errmsg);
 
     int ngx_lua_ffi_shdict_flush_expired(void *zone, int attempts,
         int *freed, char **errmsg);
@@ -64,12 +64,12 @@ ffi.cdef[[
     int ngx_lua_ffi_shdict_store_helper(void *zone, int op,
         const unsigned char *key, size_t key_len, int value_type,
         const unsigned char *str_value_buf, size_t str_value_len,
-        double num_value, int exptime, int user_flags, char **errmsg,
+        double num_value, long exptime, int user_flags, char **errmsg,
         int *forcible);
 
     int ngx_lua_ffi_shdict_incr_helper(void *zone, const unsigned char *key,
         size_t key_len, double *value, char **err, int has_init, double init,
-        int exptime, int *forcible);
+        long exptime, int *forcible);
 
 
     int ngx_lua_ffi_shdict_pop_helper(void *zone, const unsigned char *key,
@@ -372,60 +372,92 @@ local function shdict_delete(zone, key)
 end
 
 
-local function shdict_expire(zone, key, exptime, force)
-    local meta_zone = check_zone(zone)
+local function shdict_ttl(zone, key)
+    zone = check_zone(zone)
 
-    exptime = tonumber(exptime)
-    if not exptime or exptime < 0 then
-        return error("bad \"exptime\" argument")
-    end
-
-    local key, key_len = check_key(key)
     if key == nil then
-        return key, key_len
+        return nil, "nil key"
     end
 
-    if force then
-        force = 1
-    else
-        force = 0
+    if type(key) ~= "string" then
+        key = tostring(key)
     end
 
-    local is_stale = int_tmp[0]
-
-    local rc = C.ngx_lua_ffi_shdict_expire(meta_zone, force, key, key_len,
-                                           exptime * 1000, is_stale, errmsg)
-
-    if rc ~= NGX_OK then
-        return 0, ffi_str(errmsg[0])
+    local key_len = #key
+    if key_len == 0 then
+        return nil, "empty key"
     end
 
-    if force == 0 then
-        return 1
-    else
-        return 1, is_stale[0] == 1
+    if key_len > 65535 then
+        return nil, "key too long"
     end
+
+    local rc = C.ngx_lua_ffi_shdict_get_ttl(zone, key, key_len)
+
+    if rc == FFI_ERROR then
+        return nil, "bad zone"
+    end
+
+    if rc == FFI_DECLINED then
+        return nil, "not found"
+    end
+
+    return tonumber(rc) / 1000
 end
 
 
-local function shdict_ttl(zone, key)
-    local meta_zone = check_zone(zone)
+local function shdict_expire(zone, key, exptime)
+    zone = check_zone(zone)
 
-    local key, key_len = check_key(key)
+    if not exptime then
+        error('bad "exptime" argument', 2)
+    end
+
     if key == nil then
-        return key, key_len
+        return nil, "nil key"
     end
 
-    local ttl = int_tmp[0]
-
-    local rc = C.ngx_lua_ffi_shdict_ttl(meta_zone, key,
-                                        key_len, ttl, errmsg)
-
-    if rc ~= NGX_OK then
-        return nil, ffi_str(errmsg[0])
+    if type(key) ~= "string" then
+        key = tostring(key)
     end
 
-    return tonumber(ttl[0])
+    local key_len = #key
+    if key_len == 0 then
+        return nil, "empty key"
+    end
+
+    if key_len > 65535 then
+        return nil, "key too long"
+    end
+
+    local rc = C.ngx_lua_ffi_shdict_set_expire(zone, key, key_len,
+                                                    exptime * 1000)
+
+    if rc == FFI_ERROR then
+        return nil, "bad zone"
+    end
+
+    if rc == FFI_DECLINED then
+        return nil, "not found"
+    end
+
+    -- NGINX_OK/FFI_OK
+
+    return true
+end
+
+
+local function shdict_capacity(zone)
+    zone = check_zone(zone)
+
+    return tonumber(C.ngx_lua_ffi_shdict_capacity(zone))
+end
+
+
+local function shdict_free_space(zone)
+    zone = check_zone(zone)
+
+    return tonumber(C.ngx_lua_ffi_shdict_free_space(zone))
 end
 
 
@@ -506,7 +538,7 @@ end
 local function shdict_flush_all(zone)
     local meta_zone = check_zone(zone)
 
-    local rc = C.ngx_lua_ffi_shdict_flush(meta_zone, errmsg)
+    local rc = C.ngx_lua_ffi_shdict_flush_all(meta_zone, errmsg)
     if rc ~= 0 then
         return nil, "failed to flush"
     end
@@ -643,6 +675,8 @@ func.flush_expired      = shdict_flush_expired
 func.flush_all          = shdict_flush_all
 func.expire             = shdict_expire
 func.ttl                = shdict_ttl
+func.capacity           = shdict_capacity
+func.free_space         = shdict_free_space
 
 
 do
