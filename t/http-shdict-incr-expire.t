@@ -70,7 +70,7 @@ GET /test
 --- response_body
 ttl is 100
 incr: 10534 nil
-ttl is -1
+ttl is 0
 --- no_error_log
 [error]
 
@@ -147,6 +147,6 @@ ttl is 20
 GET /test
 --- response_body
 incr: 10503 nil
-ttl is -1
+ttl is 0
 --- no_error_log
 [error]

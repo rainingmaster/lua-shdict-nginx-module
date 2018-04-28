@@ -458,7 +458,8 @@ get success
 [error]
 
 
-=== TEST 8: oper another's shdict in init_by_lua
+=== TEST 8: oper another's shdict in init_by_lua. skip that init_by_lua_block in http module is execute before init_by_lua_block in stream module
+--- SKIP
 --- http_config
     lua_package_path "$TEST_NGINX_LUA_PACK_PATH";
     lua_shared_mem http_dict 900k;

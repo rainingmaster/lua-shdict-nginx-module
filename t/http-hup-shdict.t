@@ -41,7 +41,7 @@ __DATA__
 --- http_config eval: $::HttpConfig
 --- config
     location = /test {
-        content_by_lua '
+        content_by_lua_block {
             local t = require("resty.shdict")
             local dogs = t.dogs
             dogs:set("foo", 32)
@@ -50,7 +50,7 @@ __DATA__
             ngx.say(val, " ", type(val))
             val = dogs:get("bah")
             ngx.say(val, " ", type(val))
-        ';
+        }
     }
 --- request
 GET /test
@@ -66,7 +66,7 @@ GET /test
 --- http_config eval: $::HttpConfig
 --- config
     location = /test {
-        content_by_lua '
+        content_by_lua_block {
             local t = require("resty.shdict")
             local dogs = t.dogs
 
@@ -77,7 +77,7 @@ GET /test
             ngx.say(val, " ", type(val))
             val = dogs:get("bah")
             ngx.say(val, " ", type(val))
-        ';
+        }
     }
 --- request
 GET /test

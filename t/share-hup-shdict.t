@@ -33,6 +33,7 @@ run_tests();
 __DATA__
 
 === TEST 1-1: initialize the shdict in stream
+--- ONLY
 --- http_config
     lua_package_path "$TEST_NGINX_LUA_PACK_PATH";
 --- stream_config

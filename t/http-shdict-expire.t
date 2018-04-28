@@ -39,10 +39,8 @@ __DATA__
             local ok, err = dict:expire("foo", 10)
             if not ok then
                 ngx.say("expire err: ", err)
-            elseif ok == 0 then
-                ngx.say("expire key not exist")
             else
-                ngx.say("expire success: ", ok)
+                ngx.say("expire success")
             end
 
             local val, err = dict:ttl("foo")
@@ -54,7 +52,7 @@ GET /test
 --- response_body
 set success
 ttl is: 100
-expire success: 1
+expire success
 ttl is: 10
 --- no_error_log
 [error]
@@ -81,10 +79,8 @@ ttl is: 10
             local ok, err = dict:expire("list", 10)
             if not ok then
                 ngx.say("expire err: ", err)
-            elseif ok == 0 then
-                ngx.say("expire key not exist")
             else
-                ngx.say("expire success: ", ok)
+                ngx.say("expire success")
             end
 
             val, err = dict:ttl("list")
@@ -95,8 +91,8 @@ ttl is: 10
 GET /test
 --- response_body
 push success
-ttl is: -1
-expire success: 1
+ttl is: 0
+expire success
 ttl is: 10
 --- no_error_log
 [error]
@@ -125,7 +121,7 @@ ttl is: 10
 GET /test
 --- response_body
 push success
-1 nil
+true nil
 --- no_error_log
 [error]
 
@@ -143,19 +139,21 @@ push success
             local ok, err = dict:expire("foo", -10)
             if not ok then
                 ngx.say("expire err: ", err)
-            elseif ok == 0 then
-                ngx.say("expire key not exist")
             else
-                ngx.say("expire success: ", ok)
+                ngx.say("expire success")
             end
+
+            val, err = dict:ttl("foo")
+            ngx.say("ttl is: ", val)
         }
     }
 --- request
 GET /test
---- response_body_like: 500 Internal Server Error
---- error_code: 500
---- error_log
-bad "exptime" argument
+--- response_body
+expire success
+ttl is: 0
+--- no_error_log
+[error]
 
 
 === TEST 5: expire: set ttl by illegal parameter
@@ -171,10 +169,8 @@ bad "exptime" argument
             local ok, err = dict:expire("foo", "bar")
             if not ok then
                 ngx.say("expire err: ", err)
-            elseif ok == 0 then
-                ngx.say("expire key not exist")
             else
-                ngx.say("expire success: ", ok)
+                ngx.say("expire success")
             end
         }
     }
@@ -201,17 +197,21 @@ bad "exptime" argument
                 ngx.say("set err: ", err)
             end
 
-            ngx.sleep(0.02)
+            ngx.sleep(0.05)
 
             local val, err = dict:ttl("foo")
-            ngx.say("ttl is: ", val)
+            if val < 0 then
+                return ngx.say("key is expired")
+            end
+
+            ngx.say("failed: ", val)
         }
     }
 --- request
 GET /test
 --- response_body
 set success
-ttl is: -2
+key is expired
 --- no_error_log
 [error]
 
@@ -231,7 +231,7 @@ ttl is: -2
 --- request
 GET /test
 --- response_body
-ttl is: -2
+ttl is: nil
 --- no_error_log
 [error]
 
@@ -259,7 +259,7 @@ ttl is: -2
 GET /test
 --- response_body
 set success
-ttl is: -1
+ttl is: 0
 --- no_error_log
 [error]
 
@@ -279,15 +279,13 @@ ttl is: -1
                 ngx.say("set err: ", err)
             end
 
-            ngx.sleep(0.02)
+            ngx.sleep(0.05)
 
             local ok, err = dict:expire("foo", 10)
             if not ok then
                 ngx.say("expire err: ", err)
-            elseif ok == 0 then
-                ngx.say("expire key not exist")
             else
-                ngx.say("expire success: ", ok)
+                ngx.say("expire success")
             end
         }
     }
@@ -295,7 +293,7 @@ ttl is: -1
 GET /test
 --- response_body
 set success
-expire key not exist
+expire success
 --- no_error_log
 [error]
 
@@ -311,17 +309,15 @@ expire key not exist
             local ok, err = dict:expire("foo", 10)
             if not ok then
                 ngx.say("expire err: ", err)
-            elseif ok == 0 then
-                ngx.say("expire key not exist")
             else
-                ngx.say("expire success: ", ok)
+                ngx.say("expire success")
             end
         }
     }
 --- request
 GET /test
 --- response_body
-expire key not exist
+expire err: not found
 --- no_error_log
 [error]
 
@@ -347,10 +343,8 @@ expire key not exist
             local ok, err = dict:expire("foo", 10)
             if not ok then
                 ngx.say("expire err: ", err)
-            elseif ok == 0 then
-                ngx.say("expire key not exist")
             else
-                ngx.say("expire success: ", ok)
+                ngx.say("expire success")
             end
 
             local val, err = dict:ttl("foo")
@@ -361,8 +355,8 @@ expire key not exist
 GET /test
 --- response_body
 set success
-ttl is: -1
-expire success: 1
+ttl is: 0
+expire success
 ttl is: 10
 --- no_error_log
 [error]
@@ -389,10 +383,8 @@ ttl is: 10
             local ok, err = dict:expire("foo", 0)
             if not ok then
                 ngx.say("expire err: ", err)
-            elseif ok == 0 then
-                ngx.say("expire key not exist")
             else
-                ngx.say("expire success: ", ok)
+                ngx.say("expire success")
             end
 
             local val, err = dict:ttl("foo")
@@ -404,7 +396,7 @@ GET /test
 --- response_body
 set success
 ttl is: 10
-expire success: 1
-ttl is: -1
+expire success
+ttl is: 0
 --- no_error_log
 [error]
