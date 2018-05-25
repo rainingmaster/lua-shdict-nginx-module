@@ -379,7 +379,7 @@ ngx_lua_ffi_shdict_fetch_helper(ngx_shm_zone_t *zone, int get_stale,
 int
 ngx_lua_ffi_shdict_incr_helper(ngx_shm_zone_t *zone, u_char *key,
     size_t key_len, double *value, char **err, int has_init, double init,
-    long exptime, int *forcible)
+    long init_ttl, int *forcible)
 {
     int                          i, n;
     uint32_t                     hash;
@@ -398,12 +398,16 @@ ngx_lua_ffi_shdict_incr_helper(ngx_shm_zone_t *zone, u_char *key,
 
     hash = ngx_crc32_short(key, key_len);
 
+    dd("looking up key %.*s in shared dict %.*s", (int) key_len, key,
+       (int) ctx->name.len, ctx->name.data);
+
     ngx_shmtx_lock(&ctx->shpool->mutex);
-
+#if 1
     ngx_lua_shdict_expire(ctx, 1);
-
+#endif
     rc = ngx_lua_shdict_lookup(zone, hash, key, key_len, &sd);
 
+    dd("shdict lookup returned %d", (int) rc);
 
     if (rc == NGX_DECLINED || rc == NGX_DONE) {
         if (!has_init) {
@@ -429,12 +433,15 @@ ngx_lua_ffi_shdict_incr_helper(ngx_shm_zone_t *zone, u_char *key,
                 ngx_queue_remove(&sd->queue);
                 ngx_queue_insert_head(&ctx->sh->lru_queue, &sd->queue);
 
+                dd("go to setvalue");
                 goto setvalue;
             }
 
+            dd("go to remove");
             goto remove;
         }
 
+        dd("go to insert");
         goto insert;
     }
 
@@ -449,23 +456,14 @@ ngx_lua_ffi_shdict_incr_helper(ngx_shm_zone_t *zone, u_char *key,
     ngx_queue_remove(&sd->queue);
     ngx_queue_insert_head(&ctx->sh->lru_queue, &sd->queue);
 
+    dd("setting value type to %d", (int) sd->value_type);
+
     p = sd->data + key_len;
 
     ngx_memcpy(&num, p, sizeof(double));
     num += *value;
 
     ngx_memcpy(p, (double *) &num, sizeof(double));
-
-    if (exptime > 0) {
-        tp = ngx_timeofday();
-        sd->expires = (uint64_t) tp->sec * 1000 + tp->msec
-                      + (uint64_t) exptime;
-
-    } else if (exptime < 0) {
-        sd->expires = 0;
-    } else {
-        /* use old ttl */
-    }
 
     ngx_shmtx_unlock(&ctx->shpool->mutex);
 
@@ -557,21 +555,21 @@ setvalue:
 
     sd->user_flags = 0;
 
-    sd->expires = 0;
+    if (init_ttl > 0) {
+        tp = ngx_timeofday();
+        sd->expires = (uint64_t) tp->sec * 1000 + tp->msec
+                      + (uint64_t) init_ttl;
+
+    } else {
+        sd->expires = 0;
+    }
+
+    dd("setting value type to %d", LUA_TNUMBER);
 
     sd->value_type = (uint8_t) LUA_TNUMBER;
 
     p = ngx_copy(sd->data, key, key_len);
     ngx_memcpy(p, (double *) &num, sizeof(double));
-
-    if (exptime > 0) {
-        tp = ngx_timeofday();
-        sd->expires = (uint64_t) tp->sec * 1000 + tp->msec
-                      + (uint64_t) exptime;
-
-    } else {
-        sd->expires = 0;
-    }
 
     ngx_shmtx_unlock(&ctx->shpool->mutex);
 

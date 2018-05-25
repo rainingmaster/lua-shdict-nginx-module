@@ -27,7 +27,7 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: incr key and set expire
+=== TEST 1: incr key and set exists key expire
 --- stream_config eval: $::StreamConfig
 --- stream_server_config
     content_by_lua_block {
@@ -35,19 +35,19 @@ __DATA__
         local dict = t.dict
         dict:set("foo", 32, 100)
         ngx.say("ttl is ", dict:ttl("foo"))
-        local res, err = dict:incr("foo", 10502, nil, 20)
+        local res, err = dict:incr("foo", 10502, 0, 20)
         ngx.say("incr: ", res, " ", err)
         ngx.say("ttl is ", dict:ttl("foo"))
     }
 --- stream_response
 ttl is 100
 incr: 10534 nil
-ttl is 20
+ttl is 100
 --- no_error_log
 [error]
 
 
-=== TEST 2: incr key and set not expire
+=== TEST 2: incr key and not set expire
 --- stream_config eval: $::StreamConfig
 --- stream_server_config
     content_by_lua_block {
@@ -55,14 +55,14 @@ ttl is 20
         local dict = t.dict
         dict:set("foo", 32, 100)
         ngx.say("ttl is ", dict:ttl("foo"))
-        local res, err = dict:incr("foo", 10502, nil, -1)
+        local res, err = dict:incr("foo", 10502)
         ngx.say("incr: ", res, " ", err)
         ngx.say("ttl is ", dict:ttl("foo"))
     }
 --- stream_response
 ttl is 100
 incr: 10534 nil
-ttl is 0
+ttl is 100
 --- no_error_log
 [error]
 

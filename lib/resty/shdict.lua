@@ -73,7 +73,7 @@ ffi.cdef[[
 
     int ngx_lua_ffi_shdict_incr_helper(void *zone, const unsigned char *key,
         size_t key_len, double *value, char **err, int has_init, double init,
-        long exptime, int *forcible);
+        long init_ttl, int *forcible);
 
 
     int ngx_lua_ffi_shdict_pop_helper(void *zone, const unsigned char *key,
@@ -87,8 +87,15 @@ ffi.cdef[[
 
     int ngx_lua_ffi_shdict_llen(void *zone, const unsigned char *key,
         size_t key_len, int *value_len, char **errmsg);
+
+    size_t ngx_lua_ffi_shdict_capacity(void *zone);
 ]]
 
+if not pcall(function () return C.ngx_lua_ffi_shdict_free_space end) then
+    ffi.cdef[[
+        size_t ngx_lua_ffi_shdict_free_space(void *zone);
+    ]]
+end
 
 if not pcall(function () return C.free end) then
     ffi.cdef[[
@@ -110,12 +117,12 @@ local ngx_str_buf    = ffi_new("ngx_str_t *[1]")
 
 local function check_zone(zone)
     if not zone or type(zone) ~= "table" then
-        return error("bad \"zone\" argument")
+        error("bad \"zone\" argument")
     end
 
     zone = zone[ZONE_INDEX]
     if not zone or type(zone) ~= "cdata" then
-        return error("bad \"zone\" argument")
+        error("bad \"zone\" argument")
     end
 
     return zone
@@ -245,7 +252,7 @@ local function shdict_pop(zone, flag, key)
         val = nil
 
     else
-        return error("unknown value type: " .. typ)
+        error("unknown value type: " .. typ)
     end
 
     return val
@@ -291,7 +298,7 @@ local function shdict_store(zone, op, key, value, exptime, flags)
         exptime = 0
 
     elseif exptime < 0 then
-        return error("bad \"exptime\" argument")
+        error("bad \"exptime\" argument")
     end
 
     flags = tonumber(flags)
@@ -513,7 +520,7 @@ local function shdict_fetch(zone, key, get_stale)
         val = (tonumber(str_value_buf[0][0]) ~= 0)
 
     else
-        return error("unknown value type: " .. typ)
+        error("unknown value type: " .. typ)
     end
 
     if get_stale == 0 then
@@ -566,14 +573,14 @@ local function shdict_flush_expired(zone, attempts)
                                                   freed, errmsg)
 
     if rc ~= FFI_OK then
-        return error("failed get flush expire")
+        error("failed get flush expire")
     end
 
     return tonumber(freed[0])
 end
 
 
-local function shdict_incr(zone, key, value, init, exptime)
+local function shdict_incr(zone, key, value, init, init_ttl)
     local meta_zone = check_zone(zone)
 
     local key, key_len = check_key(key)
@@ -594,34 +601,45 @@ local function shdict_incr(zone, key, value, init, exptime)
             init = tonumber(init)
 
             if not init then
-                return error("bad init arg: number expected, got " .. typ)
+                error("bad init arg: number expected, got " .. typ, 2)
+            end
+        end
+    end
+
+    if init_ttl ~= nil then
+        local typ = type(init_ttl)
+        if typ ~= "number" then
+            init_ttl = tonumber(init_ttl)
+
+            if not init_ttl then
+                error("bad init_ttl arg: number expected, got " .. typ, 2)
             end
         end
 
-        has_init = 1
+        if init_ttl < 0 then
+            error('bad "init_ttl" argument', 2)
+        end
+
+        if not init then
+            error('must provide "init" when providing "init_ttl"', 2)
+        end
 
     else
-        has_init = 0
-        init = 0
-    end
-
-    exptime = tonumber(exptime)
-    if not exptime then
-        exptime = 0
+        init_ttl = 0
     end
 
     local forcible = int_tmp[0]
 
     local rc = C.ngx_lua_ffi_shdict_incr_helper(meta_zone, key, key_len,
-                                                num_value, errmsg, has_init,
-                                                init, exptime * 1000,
-                                                forcible)
+                                                num_value, errmsg,
+                                                init and 1 or 0, init or 0,
+                                                init_ttl * 1000, forcible)
 
     if rc ~= FFI_OK then
         return nil, ffi_str(errmsg[0])
     end
 
-    if has_init == 0 then
+    if not init then
         return tonumber(num_value[0])
     end
 
